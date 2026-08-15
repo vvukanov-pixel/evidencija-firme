@@ -6,7 +6,7 @@ import {
   Trash2, Plus, Volume2, ShieldCheck, Bell, Mail, UserPlus, Edit3, Lock
 } from "lucide-react";
 
-// --- Službeni podaci (osnovno stanje) ---
+// --- Osnovni podaci ---
 const INITIAL_WORKERS = [
   { id: "w1", name: "ZLATKO RADIŠ", role: "MONTER", medicalExpiry: "2027-09-01", permitExpiry: "2027-01-01" },
   { id: "w2", name: "SINIŠA PRAVICA", role: "Monter", medicalExpiry: "2027-07-03", permitExpiry: "2027-09-03" },
@@ -29,113 +29,69 @@ const INITIAL_VEHICLES = [
 ];
 
 const INITIAL_EXTINGUISHERS = [
-  { id: "e1", code: "S-6 Ured", location: "Glavni ured", serviceExpiry: "2026-08-22" },
-  { id: "e2", code: "S-2 Boxer", location: "Peugeot Boxer", serviceExpiry: "2026-08-28" },
-  { id: "e3", code: "S-2 Jumper", location: "Citroën Jumper", serviceExpiry: "2026-11-15" },
-  { id: "e4", code: "S-2 Toyota", location: "Toyota Proace", serviceExpiry: "2026-09-01" },
+  { id: "e1", code: "S-6 Ured", location: "Glavni ured", serviceExpiry: "2027-08-22" },
+  { id: "e2", code: "S-2 Boxer", location: "Peugeot Boxer", serviceExpiry: "2027-08-28" },
+  { id: "e3", code: "S-2 Jumper", location: "Citroën Jumper", serviceExpiry: "2027-11-15" },
+  { id: "e4", code: "S-2 Toyota", location: "Toyota Proace", serviceExpiry: "2027-09-01" },
   { id: "e5", code: "CO2 Skladište", location: "Skladište materijala", serviceExpiry: "2027-01-10" }
 ];
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<"radnici" | "vozila" | "aparati">("radnici");
+  const [activeTab, setActiveTab] = useState<"radnici" | "vozila" | "aparati">("aparati");
+  const [isLoaded, setIsLoaded] = useState(false);
+
   const [workers, setWorkers] = useState(INITIAL_WORKERS);
   const [vehicles, setVehicles] = useState(INITIAL_VEHICLES);
   const [extinguishers, setExtinguishers] = useState(INITIAL_EXTINGUISHERS);
 
-  // Modal za radnike
-  const [workerModal, setWorkerModal] = useState<{
-    open: boolean;
-    isEdit: boolean;
-    id?: string;
-    name: string;
-    role: string;
-    medicalExpiry: string;
-    permitExpiry: string;
-  }>({
-    open: false,
-    isEdit: false,
-    name: "",
-    role: "Monter",
-    medicalExpiry: "",
-    permitExpiry: ""
-  });
-
-  // Modal za vozila
-  const [vehicleModal, setVehicleModal] = useState<{
-    open: boolean;
-    isEdit: boolean;
-    id?: string;
-    model: string;
-    reg: string;
-    techExpiry: string;
-    insuranceExpiry: string;
-    kaskoExpiry: string;
-  }>({
-    open: false,
-    isEdit: false,
-    model: "",
-    reg: "",
-    techExpiry: "",
-    insuranceExpiry: "",
-    kaskoExpiry: ""
-  });
-
-  // Modal za vatrogasne aparate
-  const [extinguisherModal, setExtinguisherModal] = useState<{
-    open: boolean;
-    isEdit: boolean;
-    id?: string;
-    code: string;
-    location: string;
-    serviceExpiry: string;
-  }>({
-    open: false,
-    isEdit: false,
-    code: "",
-    location: "",
-    serviceExpiry: ""
-  });
-
-  // PIN Sigurnost
-  const [pinPrompt, setPinPrompt] = useState<{
-    open: boolean;
-    title: string;
-    action: () => void;
-  }>({
-    open: false,
-    title: "",
-    action: () => {}
-  });
-  const [enteredPin, setEnteredPin] = useState("");
-  const [pinError, setPinError] = useState(false);
-
-  // Učitavanje iz lokalne memorije
+  // Učitavanje iz memorije samo jednom pri pokretanju
   useEffect(() => {
     try {
-      const savedWorkers = localStorage.getItem("app_firm_workers");
-      const savedVehicles = localStorage.getItem("app_firm_vehicles");
-      const savedExtinguishers = localStorage.getItem("app_firm_extinguishers");
+      const savedWorkers = localStorage.getItem("pm_app_workers");
+      const savedVehicles = localStorage.getItem("pm_app_vehicles");
+      const savedExtinguishers = localStorage.getItem("pm_app_extinguishers");
+
       if (savedWorkers) setWorkers(JSON.parse(savedWorkers));
       if (savedVehicles) setVehicles(JSON.parse(savedVehicles));
       if (savedExtinguishers) setExtinguishers(JSON.parse(savedExtinguishers));
     } catch {
-      console.log("Greška pri učitavanju");
+      console.log("Učitavanje memorije");
+    } finally {
+      setIsLoaded(true);
     }
   }, []);
 
-  // Trajno spremanje
+  // Trajno spremanje samo NAKON što je memorija prvi put sigurno učitana
   useEffect(() => {
-    localStorage.setItem("app_firm_workers", JSON.stringify(workers));
-    localStorage.setItem("app_firm_vehicles", JSON.stringify(vehicles));
-    localStorage.setItem("app_firm_extinguishers", JSON.stringify(extinguishers));
-  }, [workers, vehicles, extinguishers]);
+    if (isLoaded) {
+      localStorage.setItem("pm_app_workers", JSON.stringify(workers));
+      localStorage.setItem("pm_app_vehicles", JSON.stringify(vehicles));
+      localStorage.setItem("pm_app_extinguishers", JSON.stringify(extinguishers));
+    }
+  }, [workers, vehicles, extinguishers, isLoaded]);
+
+  // Modali
+  const [workerModal, setWorkerModal] = useState<{ open: boolean; isEdit: boolean; id?: string; name: string; role: string; medicalExpiry: string; permitExpiry: string }>({
+    open: false, isEdit: false, name: "", role: "Monter", medicalExpiry: "", permitExpiry: ""
+  });
+
+  const [vehicleModal, setVehicleModal] = useState<{ open: boolean; isEdit: boolean; id?: string; model: string; reg: string; techExpiry: string; insuranceExpiry: string; kaskoExpiry: string }>({
+    open: false, isEdit: false, model: "", reg: "", techExpiry: "", insuranceExpiry: "", kaskoExpiry: ""
+  });
+
+  const [extinguisherModal, setExtinguisherModal] = useState<{ open: boolean; isEdit: boolean; id?: string; code: string; location: string; serviceExpiry: string }>({
+    open: false, isEdit: false, code: "", location: "", serviceExpiry: ""
+  });
+
+  // PIN Sigurnost
+  const [pinPrompt, setPinPrompt] = useState<{ open: boolean; title: string; action: () => void }>({
+    open: false, title: "", action: () => {}
+  });
+  const [enteredPin, setEnteredPin] = useState("");
+  const [pinError, setPinError] = useState(false);
 
   const requirePin = (title: string, onAuthorized: () => void) => {
-    setPinPrompt({
-      open: true,
-      title,
-      action: onAuthorized
-    });
+    setPinPrompt({ open: true, title, action: onAuthorized });
     setEnteredPin("");
     setPinError(false);
   };
@@ -161,7 +117,7 @@ export default function Dashboard() {
       osc.type = "sine";
       osc.frequency.setValueAtTime(880, ctx.currentTime);
       gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
@@ -198,41 +154,25 @@ export default function Dashboard() {
     workers.forEach((w) => {
       const pDays = getDaysLeft(w.permitExpiry);
       if (pDays <= 60 && w.permitExpiry) {
-        alerts.push({ 
-          title: `Radna dozvola: ${w.name}`, 
-          desc: `Istječe za ${pDays} dana (${w.permitExpiry})`, 
-          days: pDays
-        });
+        alerts.push({ title: `Radna dozvola: ${w.name}`, desc: `Istječe za ${pDays} dana (${w.permitExpiry})`, days: pDays });
       }
       const mDays = getDaysLeft(w.medicalExpiry);
       if (mDays <= 15 && w.medicalExpiry) {
-        alerts.push({ 
-          title: `Liječnički: ${w.name}`, 
-          desc: `Istječe za ${mDays} dana (${w.medicalExpiry})`, 
-          days: mDays 
-        });
+        alerts.push({ title: `Liječnički: ${w.name}`, desc: `Istječe za ${mDays} dana (${w.medicalExpiry})`, days: mDays });
       }
     });
 
     vehicles.forEach((v) => {
       const techDays = getDaysLeft(v.techExpiry);
       if (techDays <= 15 && v.techExpiry) {
-        alerts.push({ 
-          title: `${v.model} (${v.reg}) - Tehnički`, 
-          desc: `Istječe za ${techDays} dana (${v.techExpiry})`, 
-          days: techDays 
-        });
+        alerts.push({ title: `${v.model} (${v.reg}) - Tehnički`, desc: `Istječe za ${techDays} dana (${v.techExpiry})`, days: techDays });
       }
     });
 
     extinguishers.forEach((e) => {
       const srvDays = getDaysLeft(e.serviceExpiry);
       if (srvDays <= 15 && e.serviceExpiry) {
-        alerts.push({ 
-          title: `Aparat ${e.code} (${e.location})`, 
-          desc: `Servis za ${srvDays} dana (${e.serviceExpiry})`, 
-          days: srvDays 
-        });
+        alerts.push({ title: `Aparat ${e.code} (${e.location})`, desc: `Servis za ${srvDays} dana (${e.serviceExpiry})`, days: srvDays });
       }
     });
 
@@ -240,12 +180,12 @@ export default function Dashboard() {
   }, [workers, vehicles, extinguishers]);
 
   const sendEmailAlert = () => {
-    const subject = encodeURIComponent("Upozorenje o isteku radnih dozvola i registracija");
+    const subject = encodeURIComponent("Upozorenje o isteku radnih dozvola i registracija - Portal Montaža");
     let bodyText = "Poštovani,\n\nOvdje je pregled stavki s kritičnim rokovima:\n\n";
     urgentAlerts.forEach((a) => {
-      bodyText += `- ${a.title}: ${a.desc}\n`;
+      bodyText += `• ${a.title}: ${a.desc}\n`;
     });
-    bodyText += "\nEvidencija Firme: Radnici, Vozila i Vatrogasni Aparati";
+    bodyText += "\nEvidencija Firme: Radnici, Vozila i Vatrogasni Aparati\nPortal Montaža d.o.o.";
     window.location.href = `mailto:portal.montaza@du.ht.hr?subject=${subject}&body=${encodeURIComponent(bodyText)}`;
   };
 
@@ -266,7 +206,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           <button 
             onClick={sendEmailAlert}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg transition"
+            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg transition shadow-md"
             title="Pošalji obavijest na portal.montaza@du.ht.hr"
           >
             <Mail className="h-4 w-4" /> Pošalji na Mail
@@ -284,19 +224,19 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* KRITIČNI ALARMI TRAKA */}
+      {/* KRITIČNI ALARMI */}
       {urgentAlerts.length > 0 && (
-        <div className="bg-rose-900/20 border-b border-rose-800/30 px-6 py-3">
-          <div className="flex items-center gap-2 text-rose-300 text-sm font-semibold mb-2">
-            <AlertTriangle className="h-4 w-4" /> Upozorenja (Dozvole &lt;60 dana | Ostalo &lt;15 dana):
+        <div className="bg-rose-950/40 border-b border-rose-800/50 px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-rose-300 text-sm font-semibold">
+            <AlertTriangle className="h-5 w-5 text-rose-400 animate-bounce" />
+            <span>Upozorenje: Postoje kritični rokovi (Dozvole &lt;60 dana | Ostalo &lt;15 dana)</span>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-1 text-xs">
-            {urgentAlerts.map((a, i) => (
-              <div key={i} className="flex-shrink-0 bg-rose-950/80 border border-rose-700/60 rounded-md px-3 py-1.5">
-                <span className="font-bold text-rose-200">{a.title}</span> - {a.desc}
-              </div>
-            ))}
-          </div>
+          <button
+            onClick={sendEmailAlert}
+            className="text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition"
+          >
+            <Mail className="h-3.5 w-3.5" /> Pošalji na Mail
+          </button>
         </div>
       )}
 
@@ -304,9 +244,9 @@ export default function Dashboard() {
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col gap-6">
         <nav className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
           {[
+            { id: "aparati", label: `Vatrogasni Aparati (${extinguishers.length})`, icon: ShieldAlert },
             { id: "radnici", label: `Radnici (${workers.length})`, icon: Users },
             { id: "vozila", label: `Vozni Park (${vehicles.length})`, icon: Car },
-            { id: "aparati", label: `Vatrogasni Aparati (${extinguishers.length})`, icon: ShieldAlert },
           ].map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -326,6 +266,87 @@ export default function Dashboard() {
             );
           })}
         </nav>
+
+        {/* --- KARTICA VATROGASNI APARATI --- */}
+        {activeTab === "aparati" && (
+          <section className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 backdrop-blur">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">Vatrogasni Aparati i Periodički Atesti</h2>
+              <button 
+                onClick={() => requirePin("Unos novog aparata", () => {
+                  setExtinguisherModal({
+                    open: true,
+                    isEdit: false,
+                    code: "",
+                    location: "",
+                    serviceExpiry: ""
+                  });
+                })}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-semibold transition shadow-md"
+              >
+                <Plus className="h-4 w-4" /> Novi Aparat
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {extinguishers.map((e) => {
+                const days = getDaysLeft(e.serviceExpiry);
+                const isUrgent = days <= 15;
+
+                return (
+                  <div key={e.id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between hover:border-slate-700 transition">
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="text-xs text-indigo-400 font-mono font-semibold">{e.code}</span>
+                          <h3 className="font-bold text-white text-base mt-0.5">{e.location}</h3>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => requirePin(`Uređivanje aparata: ${e.code}`, () => {
+                              setExtinguisherModal({
+                                open: true,
+                                isEdit: true,
+                                id: e.id,
+                                code: e.code,
+                                location: e.location,
+                                serviceExpiry: e.serviceExpiry
+                              });
+                            })}
+                            className="p-1.5 hover:bg-indigo-950 hover:text-indigo-400 rounded-lg text-slate-400 transition"
+                            title="Uredi aparat (uz PIN)"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => requirePin(`Brisanje aparata: ${e.code}`, () => {
+                              setExtinguishers(prev => prev.filter(item => item.id !== e.id));
+                            })}
+                            className="p-1.5 hover:bg-rose-950/60 hover:text-rose-400 rounded-lg text-slate-500 transition"
+                            title="Obriši aparat (uz PIN)"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 p-2 rounded bg-slate-950/50 border border-slate-800 flex justify-between items-center text-xs">
+                        <span className="text-slate-400">Datum servisa:</span>
+                        <span className={`font-semibold ${isUrgent ? "text-rose-400 font-bold" : "text-slate-200"}`}>{e.serviceExpiry || "Nema unosa"}</span>
+                      </div>
+                    </div>
+
+                    <div className={`mt-3 py-2 px-2 rounded-md text-center text-xs font-bold ${
+                      isUrgent ? "bg-rose-950 text-rose-300 border border-rose-800 animate-pulse" : "bg-slate-800 text-slate-300"
+                    }`}>
+                      {days < 0 ? "Atest istekao!" : `Servis za ${days} dana`}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* --- KARTICA RADNICI --- */}
         {activeTab === "radnici" && (
@@ -377,16 +398,16 @@ export default function Dashboard() {
                               });
                             })}
                             className="p-1.5 hover:bg-indigo-950 hover:text-indigo-400 rounded-lg text-slate-400 transition"
-                            title="Uredi radnika (uz PIN)"
+                            title="Uredi radnika"
                           >
                             <Edit3 className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => requirePin(`Brisanje radnika: ${w.name}`, () => {
-                              setWorkers(workers.filter(item => item.id !== w.id));
+                              setWorkers(prev => prev.filter(item => item.id !== w.id));
                             })}
                             className="p-1.5 hover:bg-rose-950/60 hover:text-rose-400 rounded-lg text-slate-500 transition"
-                            title="Obriši radnika (uz PIN)"
+                            title="Obriši radnika"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -401,15 +422,13 @@ export default function Dashboard() {
                               {w.permitExpiry || "Nema unosa"}
                             </span>
                           </div>
-                          <div className="flex flex-col items-end gap-1">
-                            {w.permitExpiry && (
-                              <span className={`text-[11px] px-1.5 py-0.5 rounded font-semibold ${
-                                isPermitCritical ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-slate-800 text-slate-300"
-                              }`}>
-                                {permitDays < 0 ? "Istekla!" : `${permitDays} d.`}
-                              </span>
-                            )}
-                          </div>
+                          {w.permitExpiry && (
+                            <span className={`text-[11px] px-1.5 py-0.5 rounded font-semibold ${
+                              isPermitCritical ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-slate-800 text-slate-300"
+                            }`}>
+                              {permitDays < 0 ? "Istekla!" : `${permitDays} d.`}
+                            </span>
+                          )}
                         </div>
 
                         <div className="flex justify-between items-center py-2 px-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
@@ -419,15 +438,13 @@ export default function Dashboard() {
                               {w.medicalExpiry || "Nema unosa"}
                             </span>
                           </div>
-                          <div className="flex flex-col items-end gap-1">
-                            {w.medicalExpiry && (
-                              <span className={`text-[11px] px-1.5 py-0.5 rounded font-semibold ${
-                                medicalDays <= 15 ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-slate-800 text-slate-300"
-                              }`}>
-                                {medicalDays < 0 ? "Istekao!" : `${medicalDays} d.`}
-                              </span>
-                            )}
-                          </div>
+                          {w.medicalExpiry && (
+                            <span className={`text-[11px] px-1.5 py-0.5 rounded font-semibold ${
+                              medicalDays <= 15 ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-slate-800 text-slate-300"
+                            }`}>
+                              {medicalDays < 0 ? "Istekao!" : `${medicalDays} d.`}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -495,16 +512,16 @@ export default function Dashboard() {
                               });
                             })}
                             className="p-1.5 hover:bg-indigo-950 hover:text-indigo-400 rounded-lg text-slate-400 transition"
-                            title="Uredi vozilo (uz PIN)"
+                            title="Uredi vozilo"
                           >
                             <Edit3 className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => requirePin(`Brisanje vozila: ${v.model}`, () => {
-                              setVehicles(vehicles.filter(item => item.id !== v.id));
+                              setVehicles(prev => prev.filter(item => item.id !== v.id));
                             })}
                             className="p-1.5 hover:bg-rose-950/60 hover:text-rose-400 rounded-lg text-slate-500 transition"
-                            title="Obriši vozilo (uz PIN)"
+                            title="Obriši vozilo"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -538,86 +555,9 @@ export default function Dashboard() {
             </div>
           </section>
         )}
-
-        {/* --- KARTICA VATROGASNI APARATI --- */}
-        {activeTab === "aparati" && (
-          <section className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 backdrop-blur">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">Vatrogasni Aparati i Periodički Atesti</h2>
-              <button 
-                onClick={() => requirePin("Unos novog aparata", () => {
-                  setExtinguisherModal({
-                    open: true,
-                    isEdit: false,
-                    code: "",
-                    location: "",
-                    serviceExpiry: ""
-                  });
-                })}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-semibold transition"
-              >
-                <Plus className="h-4 w-4" /> Novi Aparat
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {extinguishers.map((e) => {
-                const days = getDaysLeft(e.serviceExpiry);
-                return (
-                  <div key={e.id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between">
-                    <div>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="text-xs text-indigo-400 font-mono font-semibold">{e.code}</span>
-                          <h3 className="font-bold text-white">{e.location}</h3>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => requirePin(`Uređivanje aparata: ${e.code}`, () => {
-                              setExtinguisherModal({
-                                open: true,
-                                isEdit: true,
-                                id: e.id,
-                                code: e.code,
-                                location: e.location,
-                                serviceExpiry: e.serviceExpiry
-                              });
-                            })}
-                            className="p-1.5 hover:bg-indigo-950 hover:text-indigo-400 rounded-lg text-slate-400 transition"
-                            title="Uredi aparat (uz PIN)"
-                          >
-                            <Edit3 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => requirePin(`Brisanje aparata: ${e.code}`, () => {
-                              setExtinguishers(extinguishers.filter(item => item.id !== e.id));
-                            })}
-                            className="p-1.5 hover:bg-rose-950/60 hover:text-rose-400 rounded-lg text-slate-500 transition"
-                            title="Obriši aparat (uz PIN)"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="mt-3 text-xs text-slate-400">
-                        Datum servisa: <span className="text-slate-200 font-medium">{e.serviceExpiry}</span>
-                      </div>
-                    </div>
-
-                    <div className={`mt-3 py-1.5 px-2 rounded-md text-center text-xs font-bold ${
-                      days <= 15 ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-slate-800 text-slate-300"
-                    }`}>
-                      {days < 0 ? "Atest istekao!" : `Servis za ${days} dana`}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
       </main>
 
-      {/* --- SIGURNOSNI PROZOR ZA UNOS PIN-a (2468) --- */}
+      {/* --- PIN MODAL (2468) --- */}
       {pinPrompt.open && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
@@ -625,7 +565,7 @@ export default function Dashboard() {
               <Lock className="h-5 w-5 text-indigo-400" /> Administrator PIN
             </div>
             <p className="text-xs text-slate-300 mb-1 font-semibold">{pinPrompt.title}</p>
-            <p className="text-[11px] text-slate-400 mb-4">Unesite PIN (2468) za potvrdu ove akcije:</p>
+            <p className="text-[11px] text-slate-400 mb-4">Unesite PIN (2468) za nastavak:</p>
 
             <input
               type="password"
@@ -642,7 +582,7 @@ export default function Dashboard() {
               placeholder="••••"
               className="w-full text-center tracking-widest text-3xl font-mono py-2 bg-slate-950 border border-slate-700 rounded-xl focus:border-indigo-500 outline-none mb-3 text-white"
             />
-            {pinError && <p className="text-xs text-rose-500 mb-3 text-center font-bold">Neispravan PIN kod!</p>}
+            {pinError && <p className="text-xs text-rose-500 mb-3 text-center font-bold">Neispravan PIN!</p>}
 
             <div className="flex gap-2">
               <button
@@ -666,13 +606,82 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* --- MODAL ZA APARATE --- */}
+      {extinguisherModal.open && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-indigo-400" />
+              {extinguisherModal.isEdit ? "Uredi vatrogasni aparat" : "Novi vatrogasni aparat"}
+            </h3>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Oznaka aparata:</label>
+                <input 
+                  type="text" 
+                  value={extinguisherModal.code}
+                  onChange={(e) => setExtinguisherModal({ ...extinguisherModal, code: e.target.value })}
+                  placeholder="npr. S-6 Ured"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Lokacija:</label>
+                <input 
+                  type="text" 
+                  value={extinguisherModal.location}
+                  onChange={(e) => setExtinguisherModal({ ...extinguisherModal, location: e.target.value })}
+                  placeholder="npr. Glavni ured"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Datum servisa (GGGG-MM-DD):</label>
+                <input 
+                  type="date" 
+                  value={extinguisherModal.serviceExpiry}
+                  onChange={(e) => setExtinguisherModal({ ...extinguisherModal, serviceExpiry: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => setExtinguisherModal({ open: false, isEdit: false, code: "", location: "", serviceExpiry: "" })}
+                className="flex-1 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 rounded-xl transition text-slate-300"
+              >
+                Odustani
+              </button>
+              <button
+                onClick={() => {
+                  if (!extinguisherModal.code.trim()) return alert("Unesite oznaku!");
+                  if (extinguisherModal.isEdit && extinguisherModal.id) {
+                    setExtinguishers(prev => prev.map(e => e.id === extinguisherModal.id ? { ...e, code: extinguisherModal.code, location: extinguisherModal.location, serviceExpiry: extinguisherModal.serviceExpiry } : e));
+                  } else {
+                    setExtinguishers(prev => [...prev, { id: Date.now().toString(), code: extinguisherModal.code, location: extinguisherModal.location, serviceExpiry: extinguisherModal.serviceExpiry }]);
+                  }
+                  setExtinguisherModal({ open: false, isEdit: false, code: "", location: "", serviceExpiry: "" });
+                }}
+                className="flex-1 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition shadow-md"
+              >
+                Spremi Promjene
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- MODAL ZA RADNIKE --- */}
       {workerModal.open && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
             <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-indigo-400" />
-              {workerModal.isEdit ? "Uredi podatke radnika" : "Unos novog radnika"}
+              {workerModal.isEdit ? "Uredi radnika" : "Novi radnik"}
             </h3>
 
             <div className="space-y-3 text-xs">
@@ -688,7 +697,7 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Radno mjesto / Uloga:</label>
+                <label className="block text-slate-400 mb-1 font-semibold">Radno mjesto:</label>
                 <input 
                   type="text" 
                   value={workerModal.role}
@@ -730,9 +739,9 @@ export default function Dashboard() {
                 onClick={() => {
                   if (!workerModal.name.trim()) return alert("Unesite ime!");
                   if (workerModal.isEdit && workerModal.id) {
-                    setWorkers(workers.map(w => w.id === workerModal.id ? { ...w, name: workerModal.name, role: workerModal.role, medicalExpiry: workerModal.medicalExpiry, permitExpiry: workerModal.permitExpiry } : w));
+                    setWorkers(prev => prev.map(w => w.id === workerModal.id ? { ...w, name: workerModal.name, role: workerModal.role, medicalExpiry: workerModal.medicalExpiry, permitExpiry: workerModal.permitExpiry } : w));
                   } else {
-                    setWorkers([...workers, { id: Date.now().toString(), name: workerModal.name, role: workerModal.role, medicalExpiry: workerModal.medicalExpiry, permitExpiry: workerModal.permitExpiry }]);
+                    setWorkers(prev => [...prev, { id: Date.now().toString(), name: workerModal.name, role: workerModal.role, medicalExpiry: workerModal.medicalExpiry, permitExpiry: workerModal.permitExpiry }]);
                   }
                   setWorkerModal({ open: false, isEdit: false, name: "", role: "Monter", medicalExpiry: "", permitExpiry: "" });
                 }}
@@ -778,7 +787,7 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Istek tehničkog pregleda (GGGG-MM-DD):</label>
+                <label className="block text-slate-400 mb-1 font-semibold">Istek tehničkog (GGGG-MM-DD):</label>
                 <input 
                   type="date" 
                   value={vehicleModal.techExpiry}
@@ -788,7 +797,7 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Istek AO osiguranja (GGGG-MM-DD):</label>
+                <label className="block text-slate-400 mb-1 font-semibold">Istek AO (GGGG-MM-DD):</label>
                 <input 
                   type="date" 
                   value={vehicleModal.insuranceExpiry}
@@ -798,7 +807,7 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Istek kasko osiguranja (GGGG-MM-DD):</label>
+                <label className="block text-slate-400 mb-1 font-semibold">Istek kaska (GGGG-MM-DD):</label>
                 <input 
                   type="date" 
                   value={vehicleModal.kaskoExpiry}
@@ -817,82 +826,13 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => {
-                  if (!vehicleModal.model.trim()) return alert("Unesite model vozila!");
+                  if (!vehicleModal.model.trim()) return alert("Unesite model!");
                   if (vehicleModal.isEdit && vehicleModal.id) {
-                    setVehicles(vehicles.map(v => v.id === vehicleModal.id ? { ...v, model: vehicleModal.model, reg: vehicleModal.reg, techExpiry: vehicleModal.techExpiry, insuranceExpiry: vehicleModal.insuranceExpiry, kaskoExpiry: vehicleModal.kaskoExpiry } : v));
+                    setVehicles(prev => prev.map(v => v.id === vehicleModal.id ? { ...v, model: vehicleModal.model, reg: vehicleModal.reg, techExpiry: vehicleModal.techExpiry, insuranceExpiry: vehicleModal.insuranceExpiry, kaskoExpiry: vehicleModal.kaskoExpiry } : v));
                   } else {
-                    setVehicles([...vehicles, { id: Date.now().toString(), model: vehicleModal.model, reg: vehicleModal.reg, techExpiry: vehicleModal.techExpiry, insuranceExpiry: vehicleModal.insuranceExpiry, kaskoExpiry: vehicleModal.kaskoExpiry }]);
+                    setVehicles(prev => [...prev, { id: Date.now().toString(), model: vehicleModal.model, reg: vehicleModal.reg, techExpiry: vehicleModal.techExpiry, insuranceExpiry: vehicleModal.insuranceExpiry, kaskoExpiry: vehicleModal.kaskoExpiry }]);
                   }
                   setVehicleModal({ open: false, isEdit: false, model: "", reg: "", techExpiry: "", insuranceExpiry: "", kaskoExpiry: "" });
-                }}
-                className="flex-1 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition shadow-md"
-              >
-                Spremi Promjene
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODAL ZA VATROGASNE APARATE --- */}
-      {extinguisherModal.open && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-indigo-400" />
-              {extinguisherModal.isEdit ? "Uredi aparat" : "Novi vatrogasni aparat"}
-            </h3>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Oznaka aparata:</label>
-                <input 
-                  type="text" 
-                  value={extinguisherModal.code}
-                  onChange={(e) => setExtinguisherModal({ ...extinguisherModal, code: e.target.value })}
-                  placeholder="npr. S-6 Radiona"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Lokacija:</label>
-                <input 
-                  type="text" 
-                  value={extinguisherModal.location}
-                  onChange={(e) => setExtinguisherModal({ ...extinguisherModal, location: e.target.value })}
-                  placeholder="npr. Glavni ured / Kombi 1"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Datum sljedećeg servisa (GGGG-MM-DD):</label>
-                <input 
-                  type="date" 
-                  value={extinguisherModal.serviceExpiry}
-                  onChange={(e) => setExtinguisherModal({ ...extinguisherModal, serviceExpiry: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-5">
-              <button
-                onClick={() => setExtinguisherModal({ open: false, isEdit: false, code: "", location: "", serviceExpiry: "" })}
-                className="flex-1 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 rounded-xl transition text-slate-300"
-              >
-                Odustani
-              </button>
-              <button
-                onClick={() => {
-                  if (!extinguisherModal.code.trim()) return alert("Unesite oznaku!");
-                  if (extinguisherModal.isEdit && extinguisherModal.id) {
-                    setExtinguishers(extinguishers.map(e => e.id === extinguisherModal.id ? { ...e, code: extinguisherModal.code, location: extinguisherModal.location, serviceExpiry: extinguisherModal.serviceExpiry } : e));
-                  } else {
-                    setExtinguishers([...extinguishers, { id: Date.now().toString(), code: extinguisherModal.code, location: extinguisherModal.location, serviceExpiry: extinguisherModal.serviceExpiry }]);
-                  }
-                  setExtinguisherModal({ open: false, isEdit: false, code: "", location: "", serviceExpiry: "" });
                 }}
                 className="flex-1 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition shadow-md"
               >
