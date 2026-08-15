@@ -44,7 +44,6 @@ export default function Dashboard() {
   const [vehicles, setVehicles] = useState(INITIAL_VEHICLES);
   const [extinguishers, setExtinguishers] = useState(INITIAL_EXTINGUISHERS);
 
-  // Učitavanje iz memorije samo jednom pri pokretanju
   useEffect(() => {
     try {
       const savedWorkers = localStorage.getItem("pm_app_workers");
@@ -61,7 +60,6 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Trajno spremanje samo NAKON što je memorija prvi put sigurno učitana
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem("pm_app_workers", JSON.stringify(workers));
@@ -148,6 +146,7 @@ export default function Dashboard() {
     return Math.ceil((parsed.getTime() - today) / (1000 * 60 * 60 * 24));
   };
 
+  // Upozorenja: Radne dozvole (<= 60 dana) | Liječnički, Vozila, Aparati (<= 7 dana)
   const urgentAlerts = useMemo(() => {
     const alerts: { title: string; desc: string; days: number }[] = [];
     
@@ -157,21 +156,21 @@ export default function Dashboard() {
         alerts.push({ title: `Radna dozvola: ${w.name}`, desc: `Istječe za ${pDays} dana (${w.permitExpiry})`, days: pDays });
       }
       const mDays = getDaysLeft(w.medicalExpiry);
-      if (mDays <= 15 && w.medicalExpiry) {
+      if (mDays <= 7 && w.medicalExpiry) {
         alerts.push({ title: `Liječnički: ${w.name}`, desc: `Istječe za ${mDays} dana (${w.medicalExpiry})`, days: mDays });
       }
     });
 
     vehicles.forEach((v) => {
       const techDays = getDaysLeft(v.techExpiry);
-      if (techDays <= 15 && v.techExpiry) {
+      if (techDays <= 7 && v.techExpiry) {
         alerts.push({ title: `${v.model} (${v.reg}) - Tehnički`, desc: `Istječe za ${techDays} dana (${v.techExpiry})`, days: techDays });
       }
     });
 
     extinguishers.forEach((e) => {
       const srvDays = getDaysLeft(e.serviceExpiry);
-      if (srvDays <= 15 && e.serviceExpiry) {
+      if (srvDays <= 7 && e.serviceExpiry) {
         alerts.push({ title: `Aparat ${e.code} (${e.location})`, desc: `Servis za ${srvDays} dana (${e.serviceExpiry})`, days: srvDays });
       }
     });
@@ -229,7 +228,7 @@ export default function Dashboard() {
         <div className="bg-rose-950/40 border-b border-rose-800/50 px-6 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-rose-300 text-sm font-semibold">
             <AlertTriangle className="h-5 w-5 text-rose-400 animate-bounce" />
-            <span>Upozorenje: Postoje kritični rokovi (Dozvole &lt;60 dana | Ostalo &lt;15 dana)</span>
+            <span>Upozorenje: Postoje kritični rokovi (Dozvole &lt;60 dana | Ostalo &lt;7 dana)</span>
           </div>
           <button
             onClick={sendEmailAlert}
@@ -291,7 +290,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {extinguishers.map((e) => {
                 const days = getDaysLeft(e.serviceExpiry);
-                const isUrgent = days <= 15;
+                const isUrgent = days <= 7;
 
                 return (
                   <div key={e.id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between hover:border-slate-700 transition">
@@ -375,6 +374,7 @@ export default function Dashboard() {
                 const permitDays = getDaysLeft(w.permitExpiry);
                 const medicalDays = getDaysLeft(w.medicalExpiry);
                 const isPermitCritical = w.permitExpiry && permitDays <= 60;
+                const isMedCritical = w.medicalExpiry && medicalDays <= 7;
 
                 return (
                   <div key={w.id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between gap-3 hover:border-slate-700 transition">
@@ -434,13 +434,13 @@ export default function Dashboard() {
                         <div className="flex justify-between items-center py-2 px-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
                           <div>
                             <span className="block text-slate-400 font-semibold mb-0.5">Liječnički pregled:</span>
-                            <span className={w.medicalExpiry && medicalDays <= 15 ? "text-rose-400 font-bold text-sm" : "text-slate-200"}>
+                            <span className={isMedCritical ? "text-rose-400 font-bold text-sm" : "text-slate-200"}>
                               {w.medicalExpiry || "Nema unosa"}
                             </span>
                           </div>
                           {w.medicalExpiry && (
                             <span className={`text-[11px] px-1.5 py-0.5 rounded font-semibold ${
-                              medicalDays <= 15 ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-slate-800 text-slate-300"
+                              isMedCritical ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-slate-800 text-slate-300"
                             }`}>
                               {medicalDays < 0 ? "Istekao!" : `${medicalDays} d.`}
                             </span>
@@ -487,7 +487,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {vehicles.map((v) => {
                 const days = getDaysLeft(v.techExpiry);
-                const isUrgent = days <= 15;
+                const isUrgent = days <= 7;
 
                 return (
                   <div key={v.id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between gap-3 hover:border-slate-700 transition">

@@ -25,10 +25,10 @@ const VEHICLES = [
 ];
 
 const EXTINGUISHERS = [
-  { code: "S-6 Ured", location: "Glavni ured", serviceExpiry: "2026-08-22" },
-  { code: "S-2 Boxer", location: "Peugeot Boxer", serviceExpiry: "2026-08-28" },
-  { code: "S-2 Jumper", location: "Citroën Jumper", serviceExpiry: "2026-11-15" },
-  { code: "S-2 Toyota", location: "Toyota Proace", serviceExpiry: "2026-09-01" },
+  { code: "S-6 Ured", location: "Glavni ured", serviceExpiry: "2027-08-22" },
+  { code: "S-2 Boxer", location: "Peugeot Boxer", serviceExpiry: "2027-08-28" },
+  { code: "S-2 Jumper", location: "Citroën Jumper", serviceExpiry: "2027-11-15" },
+  { code: "S-2 Toyota", location: "Toyota Proace", serviceExpiry: "2027-09-01" },
   { code: "CO2 Skladište", location: "Skladište", serviceExpiry: "2027-01-10" }
 ];
 
@@ -42,35 +42,34 @@ function getDaysLeft(dateStr: string) {
 export async function GET() {
   const alerts: string[] = [];
 
-  // Radne dozvole (<= 60 dana) i Liječnički (<= 15 dana)
+  // Radne dozvole (<= 60 dana) i Liječnički (<= 7 dana)
   WORKERS.forEach((w) => {
     const permitDays = getDaysLeft(w.permitExpiry);
     if (permitDays <= 60) {
       alerts.push(`⚠️ RADNA DOZVOLA: ${w.name} - istječe za ${permitDays} dana (${w.permitExpiry})`);
     }
     const medDays = getDaysLeft(w.medicalExpiry);
-    if (medDays <= 15) {
+    if (medDays <= 7) {
       alerts.push(`🩺 LIJEČNIČKI PREGLED: ${w.name} - istječe za ${medDays} dana (${w.medicalExpiry})`);
     }
   });
 
-  // Vozila (<= 15 dana)
+  // Vozila (<= 7 dana)
   VEHICLES.forEach((v) => {
     const techDays = getDaysLeft(v.techExpiry);
-    if (techDays <= 15) {
+    if (techDays <= 7) {
       alerts.push(`🚗 VOZILO: ${v.model} (${v.reg}) - tehnički pregled istječe za ${techDays} dana (${v.techExpiry})`);
     }
   });
 
-  // Vatrogasni aparati (<= 15 dana)
+  // Vatrogasni aparati (<= 7 dana)
   EXTINGUISHERS.forEach((e) => {
     const srvDays = getDaysLeft(e.serviceExpiry);
-    if (srvDays <= 15) {
+    if (srvDays <= 7) {
       alerts.push(`🧯 APARAT: ${e.code} (${e.location}) - atest istječe za ${srvDays} dana (${e.serviceExpiry})`);
     }
   });
 
-  // Ako ima isteka, automatski šalje mail
   if (alerts.length > 0) {
     try {
       await resend.emails.send({
