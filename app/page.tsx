@@ -6,7 +6,6 @@ import {
   Trash2, Plus, Volume2, ShieldCheck, Bell
 } from "lucide-react";
 
-// --- Početni podaci ---
 const INITIAL_VEHICLES = [
   { id: "v1", model: "Kombi teretni 1 (Bijeli)", reg: "DU-101-AA", techExpiry: "2026-08-28", insuranceExpiry: "2026-08-28", kaskoExpiry: "2026-08-28" },
   { id: "v2", model: "Kombi teretni 2 (Sivi)", reg: "DU-102-BB", techExpiry: "2026-11-15", insuranceExpiry: "2026-11-15", kaskoExpiry: "2026-11-15" },
@@ -29,8 +28,7 @@ export default function Dashboard() {
   const [vehicles, setVehicles] = useState(INITIAL_VEHICLES);
   const [extinguishers, setExtinguishers] = useState(INITIAL_EXTINGUISHERS);
 
-  // PIN provjera za brisanje (PIN: 2468)
-  const [pinModal, setPinModal] = useState<{ open: boolean; itemType: string; itemId: string }>({
+  const [pinModal, setPinModal] = useState<{ open: boolean; itemType: string; itemId: string; field?: string }>({
     open: false,
     itemType: "",
     itemId: ""
@@ -38,7 +36,6 @@ export default function Dashboard() {
   const [enteredPin, setEnteredPin] = useState("");
   const [pinError, setPinError] = useState(false);
 
-  // Zvučni alarm
   const playAlarmSound = () => {
     try {
       const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -95,9 +92,22 @@ export default function Dashboard() {
       setPinError(true);
       return;
     }
-    const { itemType, itemId } = pinModal;
-    if (itemType === "vehicle") setVehicles(vehicles.filter((v) => v.id !== itemId));
-    if (itemType === "extinguisher") setExtinguishers(extinguishers.filter((e) => e.id !== itemId));
+    const { itemType, itemId, field } = pinModal;
+
+    if (itemType === "vehicle") {
+      if (field === "ao") {
+        setVehicles(vehicles.map(v => v.id === itemId ? { ...v, insuranceExpiry: "" } : v));
+      } else if (field === "kasko") {
+        setVehicles(vehicles.map(v => v.id === itemId ? { ...v, kaskoExpiry: "" } : v));
+      } else {
+        setVehicles(vehicles.filter((v) => v.id !== itemId));
+      }
+    }
+
+    if (itemType === "extinguisher") {
+      setExtinguishers(extinguishers.filter((e) => e.id !== itemId));
+    }
+
     setPinModal({ open: false, itemType: "", itemId: "" });
     setEnteredPin("");
     setPinError(false);
@@ -112,7 +122,7 @@ export default function Dashboard() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-white tracking-wide">Evidencija Vozila i Opreme</h1>
-            <p className="text-xs text-slate-400">Praćenje tehničkih pregleda, osiguranja i servisa</p>
+            <p className="text-xs text-slate-400">Praćenje tehničkih pregleda, osiguranja i atesta</p>
           </div>
         </div>
 
@@ -202,24 +212,44 @@ export default function Dashboard() {
                         <button
                           onClick={() => setPinModal({ open: true, itemType: "vehicle", itemId: v.id })}
                           className="p-1.5 hover:bg-rose-950/60 hover:text-rose-400 rounded-lg text-slate-500 transition"
-                          title="Obriši uz PIN"
+                          title="Obriši vozilo uz PIN"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
 
-                      <div className="mt-4 space-y-1.5 text-xs">
-                        <div className="flex justify-between py-1 border-b border-slate-800/60">
+                      <div className="mt-4 space-y-2 text-xs">
+                        <div className="flex justify-between items-center py-1 border-b border-slate-800/60">
                           <span className="text-slate-400">Tehnički pregled:</span>
-                          <span className={days <= 15 ? "text-rose-400 font-bold" : "text-slate-200"}>{v.techExpiry}</span>
+                          <span className={days <= 15 ? "text-rose-400 font-bold" : "text-slate-200"}>{v.techExpiry || "Nije uneseno"}</span>
                         </div>
-                        <div className="flex justify-between py-1 border-b border-slate-800/60">
+                        <div className="flex justify-between items-center py-1 border-b border-slate-800/60">
                           <span className="text-slate-400">Osiguranje (AO):</span>
-                          <span className="text-slate-200">{v.insuranceExpiry}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-200">{v.insuranceExpiry || "Nije uneseno"}</span>
+                            {v.insuranceExpiry && (
+                              <button
+                                onClick={() => setPinModal({ open: true, itemType: "vehicle", itemId: v.id, field: "ao" })}
+                                className="text-[10px] text-rose-400 hover:text-rose-300 underline"
+                              >
+                                Obriši AO
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex justify-between py-1">
+                        <div className="flex justify-between items-center py-1">
                           <span className="text-slate-400">Kasko:</span>
-                          <span className="text-slate-200">{v.kaskoExpiry}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-200">{v.kaskoExpiry || "Nije uneseno"}</span>
+                            {v.kaskoExpiry && (
+                              <button
+                                onClick={() => setPinModal({ open: true, itemType: "vehicle", itemId: v.id, field: "kasko" })}
+                                className="text-[10px] text-rose-400 hover:text-rose-300 underline"
+                              >
+                                Obriši Kasko
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -268,7 +298,7 @@ export default function Dashboard() {
                         <button
                           onClick={() => setPinModal({ open: true, itemType: "extinguisher", itemId: e.id })}
                           className="p-1.5 hover:bg-rose-950/60 hover:text-rose-400 rounded-lg text-slate-500 transition"
-                          title="Obriši uz PIN"
+                          title="Obriši aparat uz PIN"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -291,7 +321,6 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* Sigurnosni Modal za PIN (2468) */}
       {pinModal.open && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
@@ -299,7 +328,7 @@ export default function Dashboard() {
               <ShieldAlert className="h-5 w-5" /> Zaštita Brisanja (PIN)
             </div>
             <p className="text-xs text-slate-400 mb-4">
-              Za potvrdu trajnog brisanja stavke unesite PIN kod:
+              Za potvrdu akcije unesite PIN kod:
             </p>
             <input
               type="password"
@@ -328,7 +357,7 @@ export default function Dashboard() {
                 onClick={handleConfirmDelete}
                 className="flex-1 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white rounded-xl transition"
               >
-                Potvrdi Brisanje
+                Potvrdi
               </button>
             </div>
           </div>
