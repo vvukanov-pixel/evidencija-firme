@@ -6,11 +6,16 @@ import {
   Trash2, Plus, Volume2, ShieldCheck, Bell, Mail, UserPlus, Edit3
 } from "lucide-react";
 
-// --- Početni podaci ---
+// --- Vaši stvarni radnici postavljeni kao početni podaci ---
 const INITIAL_WORKERS = [
-  { id: "w1", name: "Ivan Horvat", role: "Vozač / Radnik", medicalExpiry: "2026-11-15", permitExpiry: "2026-10-10" },
-  { id: "w2", name: "Marko Marić", role: "Voditelj", medicalExpiry: "2027-04-20", permitExpiry: "2026-09-30" },
-  { id: "w3", name: "Petar Kovač", role: "Radnik", medicalExpiry: "2026-09-05", permitExpiry: "2027-01-15" }
+  { id: "w1", name: "ZLATKO RADIŠ", role: "MONTER", medicalExpiry: "2027-09-01", permitExpiry: "2027-01-01" },
+  { id: "w2", name: "SINIŠA PRAVICA", role: "Monter", medicalExpiry: "2027-08-15", permitExpiry: "2027-09-03" },
+  { id: "w3", name: "SLAVEN PUHALO", role: "MONTER", medicalExpiry: "2027-08-15", permitExpiry: "2027-09-15" },
+  { id: "w4", name: "NIKOLA MRDIĆ", role: "Monter", medicalExpiry: "2027-09-15", permitExpiry: "2027-09-15" },
+  { id: "w5", name: "LJUBIŠA DOŠLO", role: "POMOĆNI MONTER", medicalExpiry: "2027-09-15", permitExpiry: "2027-09-15" },
+  { id: "w6", name: "RANKO JANJIĆ", role: "POMOĆNI MONTER", medicalExpiry: "2027-09-15", permitExpiry: "2027-09-15" },
+  { id: "w7", name: "BRANISLAV BEGENUŠIĆ", role: "POMOĆNI MONTER", medicalExpiry: "2027-10-15", permitExpiry: "2027-10-15" },
+  { id: "w8", name: "MIODRAG ĆERANIĆ", role: "POMOĆNI MONTER", medicalExpiry: "2027-09-15", permitExpiry: "2027-09-15" }
 ];
 
 const INITIAL_VEHICLES = [
@@ -36,7 +41,6 @@ export default function Dashboard() {
   const [vehicles, setVehicles] = useState(INITIAL_VEHICLES);
   const [extinguishers, setExtinguishers] = useState(INITIAL_EXTINGUISHERS);
 
-  // Modal za unos / izmjenu radnika
   const [workerModal, setWorkerModal] = useState<{
     open: boolean;
     isEdit: boolean;
@@ -49,7 +53,7 @@ export default function Dashboard() {
     open: false,
     isEdit: false,
     name: "",
-    role: "Radnik",
+    role: "Monter",
     medicalExpiry: "",
     permitExpiry: ""
   });
@@ -82,30 +86,44 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const savedWorkers = localStorage.getItem("app_workers");
-    const savedVehicles = localStorage.getItem("app_vehicles");
-    const savedExtinguishers = localStorage.getItem("app_extinguishers");
+    const savedWorkers = localStorage.getItem("app_workers_v2");
+    const savedVehicles = localStorage.getItem("app_vehicles_v2");
+    const savedExtinguishers = localStorage.getItem("app_extinguishers_v2");
     if (savedWorkers) setWorkers(JSON.parse(savedWorkers));
     if (savedVehicles) setVehicles(JSON.parse(savedVehicles));
     if (savedExtinguishers) setExtinguishers(JSON.parse(savedExtinguishers));
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("app_workers", JSON.stringify(workers));
-    localStorage.setItem("app_vehicles", JSON.stringify(vehicles));
-    localStorage.setItem("app_extinguishers", JSON.stringify(extinguishers));
+    localStorage.setItem("app_workers_v2", JSON.stringify(workers));
+    localStorage.setItem("app_vehicles_v2", JSON.stringify(vehicles));
+    localStorage.setItem("app_extinguishers_v2", JSON.stringify(extinguishers));
   }, [workers, vehicles, extinguishers]);
+
+  // Pametno parsiranje datuma (podržava i YYYY-MM-DD i DD.MM.YYYY)
+  const parseDate = (dateStr: string) => {
+    if (!dateStr) return null;
+    const cleanStr = dateStr.trim();
+    if (cleanStr.includes(".")) {
+      const parts = cleanStr.split(".");
+      if (parts.length >= 3) {
+        if (parts[0].length === 4) return new Date(`${parts[0]}-${parts[1]}-${parts[2]}`);
+        return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+      }
+    }
+    return new Date(cleanStr);
+  };
 
   const getDaysLeft = (dateStr: string) => {
     if (!dateStr) return 999;
-    const target = new Date(dateStr).getTime();
+    const parsed = parseDate(dateStr);
+    if (!parsed || isNaN(parsed.getTime())) return 999;
     const today = new Date().setHours(0, 0, 0, 0);
-    return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+    return Math.ceil((parsed.getTime() - today) / (1000 * 60 * 60 * 24));
   };
 
-  // Upozorenja: Radne dozvole (<=60 dana), Liječnički i ostalo (<=15 dana)
   const urgentAlerts = useMemo(() => {
-    const alerts: { title: string; desc: string; days: number; isPermit?: boolean }[] = [];
+    const alerts: { title: string; desc: string; days: number }[] = [];
     
     workers.forEach((w) => {
       const pDays = getDaysLeft(w.permitExpiry);
@@ -113,8 +131,7 @@ export default function Dashboard() {
         alerts.push({ 
           title: `Radna dozvola: ${w.name}`, 
           desc: `Istječe za ${pDays} dana (${w.permitExpiry})`, 
-          days: pDays,
-          isPermit: true 
+          days: pDays
         });
       }
       const mDays = getDaysLeft(w.medicalExpiry);
@@ -155,23 +172,18 @@ export default function Dashboard() {
   const sendEmailAlert = () => {
     const subject = encodeURIComponent("Upozorenje o isteku radnih dozvola i atesta");
     let bodyText = "Poštovani,\n\nOvdje je pregled stavki s kritičnim rokovima:\n\n";
-    
     urgentAlerts.forEach((a) => {
       bodyText += `- ${a.title}: ${a.desc}\n`;
     });
-
     bodyText += "\nEvidencija Firme: Radnici, Vozila i Vatrogasni Aparati";
-    const mailtoUrl = `mailto:portal.montaza@du.ht.hr?subject=${subject}&body=${encodeURIComponent(bodyText)}`;
-    window.location.href = mailtoUrl;
+    window.location.href = `mailto:portal.montaza@du.ht.hr?subject=${subject}&body=${encodeURIComponent(bodyText)}`;
   };
 
-  // Spremanje novog ili uređenog radnika
   const handleSaveWorker = () => {
     if (!workerModal.name.trim()) {
       alert("Molimo unesite ime radnika!");
       return;
     }
-
     if (workerModal.isEdit && workerModal.id) {
       setWorkers(workers.map(w => w.id === workerModal.id ? {
         ...w,
@@ -189,8 +201,7 @@ export default function Dashboard() {
         permitExpiry: workerModal.permitExpiry
       }]);
     }
-
-    setWorkerModal({ open: false, isEdit: false, name: "", role: "Radnik", medicalExpiry: "", permitExpiry: "" });
+    setWorkerModal({ open: false, isEdit: false, name: "", role: "Monter", medicalExpiry: "", permitExpiry: "" });
   };
 
   const handleConfirmDelete = () => {
@@ -314,7 +325,7 @@ export default function Dashboard() {
                   open: true,
                   isEdit: false,
                   name: "",
-                  role: "Radnik",
+                  role: "Monter",
                   medicalExpiry: "",
                   permitExpiry: ""
                 })}
@@ -365,7 +376,7 @@ export default function Dashboard() {
                       </div>
 
                       <div className="mt-4 space-y-2 text-xs">
-                        {/* Radna dozvola (Alarm 2 mjeseca / 60 dana) */}
+                        {/* Radna dozvola */}
                         <div className="flex justify-between items-center py-2 px-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
                           <div>
                             <span className="block text-slate-400 font-semibold mb-0.5">Radna dozvola:</span>
@@ -383,7 +394,7 @@ export default function Dashboard() {
                             )}
                             <button
                               onClick={() => {
-                                const newDate = prompt(`Unesite novi datum radne dozvole za ${w.name} (GGGG-MM-DD):`, w.permitExpiry);
+                                const newDate = prompt(`Unesite datum radne dozvole za ${w.name} (GGGG-MM-DD):`, w.permitExpiry);
                                 if (newDate !== null) {
                                   setWorkers(workers.map(item => item.id === w.id ? { ...item, permitExpiry: newDate } : item));
                                 }
@@ -413,7 +424,7 @@ export default function Dashboard() {
                             )}
                             <button
                               onClick={() => {
-                                const newDate = prompt(`Unesite novi datum liječničkog pregleda za ${w.name} (GGGG-MM-DD):`, w.medicalExpiry);
+                                const newDate = prompt(`Unesite datum liječničkog pregleda za ${w.name} (GGGG-MM-DD):`, w.medicalExpiry);
                                 if (newDate !== null) {
                                   setWorkers(workers.map(item => item.id === w.id ? { ...item, medicalExpiry: newDate } : item));
                                 }
@@ -582,7 +593,7 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* MODAL ZA UNOS / UREĐIVANJE RADNIKA */}
+      {/* Modal za unos i izmjenu */}
       {workerModal.open && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
@@ -609,7 +620,7 @@ export default function Dashboard() {
                   type="text" 
                   value={workerModal.role}
                   onChange={(e) => setWorkerModal({ ...workerModal, role: e.target.value })}
-                  placeholder="npr. Vozač / Radnik"
+                  placeholder="npr. Monter"
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
                 />
               </div>
@@ -617,9 +628,10 @@ export default function Dashboard() {
               <div>
                 <label className="block text-slate-400 mb-1 font-semibold">Istek Radne Dozvole (GGGG-MM-DD):</label>
                 <input 
-                  type="date" 
+                  type="text" 
                   value={workerModal.permitExpiry}
                   onChange={(e) => setWorkerModal({ ...workerModal, permitExpiry: e.target.value })}
+                  placeholder="2027-09-15"
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
                 />
               </div>
@@ -627,9 +639,10 @@ export default function Dashboard() {
               <div>
                 <label className="block text-slate-400 mb-1 font-semibold">Istek Liječničkog Pregleda (GGGG-MM-DD):</label>
                 <input 
-                  type="date" 
+                  type="text" 
                   value={workerModal.medicalExpiry}
                   onChange={(e) => setWorkerModal({ ...workerModal, medicalExpiry: e.target.value })}
+                  placeholder="2027-09-15"
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
                 />
               </div>
@@ -637,7 +650,7 @@ export default function Dashboard() {
 
             <div className="flex gap-2 mt-5">
               <button
-                onClick={() => setWorkerModal({ open: false, isEdit: false, name: "", role: "Radnik", medicalExpiry: "", permitExpiry: "" })}
+                onClick={() => setWorkerModal({ open: false, isEdit: false, name: "", role: "Monter", medicalExpiry: "", permitExpiry: "" })}
                 className="flex-1 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 rounded-xl transition text-slate-300"
               >
                 Odustani
