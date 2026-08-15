@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   Users, Car, ShieldAlert, AlertTriangle, 
-  Trash2, Plus, Volume2, ShieldCheck, Bell, Mail, UserPlus
+  Trash2, Plus, Volume2, ShieldCheck, Bell, Mail, UserPlus, Edit3
 } from "lucide-react";
 
 // --- Početni podaci ---
@@ -35,6 +35,24 @@ export default function Dashboard() {
   const [workers, setWorkers] = useState(INITIAL_WORKERS);
   const [vehicles, setVehicles] = useState(INITIAL_VEHICLES);
   const [extinguishers, setExtinguishers] = useState(INITIAL_EXTINGUISHERS);
+
+  // Modal za unos / izmjenu radnika
+  const [workerModal, setWorkerModal] = useState<{
+    open: boolean;
+    isEdit: boolean;
+    id?: string;
+    name: string;
+    role: string;
+    medicalExpiry: string;
+    permitExpiry: string;
+  }>({
+    open: false,
+    isEdit: false,
+    name: "",
+    role: "Radnik",
+    medicalExpiry: "",
+    permitExpiry: ""
+  });
 
   const [pinModal, setPinModal] = useState<{ open: boolean; itemType: string; itemId: string; field?: string }>({
     open: false,
@@ -91,7 +109,7 @@ export default function Dashboard() {
     
     workers.forEach((w) => {
       const pDays = getDaysLeft(w.permitExpiry);
-      if (pDays <= 60) {
+      if (pDays <= 60 && w.permitExpiry) {
         alerts.push({ 
           title: `Radna dozvola: ${w.name}`, 
           desc: `Istječe za ${pDays} dana (${w.permitExpiry})`, 
@@ -100,7 +118,7 @@ export default function Dashboard() {
         });
       }
       const mDays = getDaysLeft(w.medicalExpiry);
-      if (mDays <= 15) {
+      if (mDays <= 15 && w.medicalExpiry) {
         alerts.push({ 
           title: `Liječnički: ${w.name}`, 
           desc: `Istječe za ${mDays} dana (${w.medicalExpiry})`, 
@@ -111,7 +129,7 @@ export default function Dashboard() {
 
     vehicles.forEach((v) => {
       const techDays = getDaysLeft(v.techExpiry);
-      if (techDays <= 15) {
+      if (techDays <= 15 && v.techExpiry) {
         alerts.push({ 
           title: `${v.model} - Tehnički`, 
           desc: `Istječe za ${techDays} dana (${v.techExpiry})`, 
@@ -122,7 +140,7 @@ export default function Dashboard() {
 
     extinguishers.forEach((e) => {
       const srvDays = getDaysLeft(e.serviceExpiry);
-      if (srvDays <= 15) {
+      if (srvDays <= 15 && e.serviceExpiry) {
         alerts.push({ 
           title: `Aparat ${e.code} (${e.location})`, 
           desc: `Servis za ${srvDays} dana (${e.serviceExpiry})`, 
@@ -145,6 +163,34 @@ export default function Dashboard() {
     bodyText += "\nEvidencija Firme: Radnici, Vozila i Vatrogasni Aparati";
     const mailtoUrl = `mailto:portal.montaza@du.ht.hr?subject=${subject}&body=${encodeURIComponent(bodyText)}`;
     window.location.href = mailtoUrl;
+  };
+
+  // Spremanje novog ili uređenog radnika
+  const handleSaveWorker = () => {
+    if (!workerModal.name.trim()) {
+      alert("Molimo unesite ime radnika!");
+      return;
+    }
+
+    if (workerModal.isEdit && workerModal.id) {
+      setWorkers(workers.map(w => w.id === workerModal.id ? {
+        ...w,
+        name: workerModal.name,
+        role: workerModal.role,
+        medicalExpiry: workerModal.medicalExpiry,
+        permitExpiry: workerModal.permitExpiry
+      } : w));
+    } else {
+      setWorkers([...workers, {
+        id: Date.now().toString(),
+        name: workerModal.name,
+        role: workerModal.role,
+        medicalExpiry: workerModal.medicalExpiry,
+        permitExpiry: workerModal.permitExpiry
+      }]);
+    }
+
+    setWorkerModal({ open: false, isEdit: false, name: "", role: "Radnik", medicalExpiry: "", permitExpiry: "" });
   };
 
   const handleConfirmDelete = () => {
@@ -264,15 +310,15 @@ export default function Dashboard() {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold">Popis Radnika i Dozvola</h2>
               <button 
-                onClick={() => {
-                  const name = prompt("Ime i prezime radnika:");
-                  if (!name) return;
-                  const role = prompt("Radno mjesto / Uloga:", "Radnik") || "Radnik";
-                  const medicalExpiry = prompt("Istek liječničkog (GGGG-MM-DD):", "2027-01-01") || "";
-                  const permitExpiry = prompt("Istek radne dozvole (GGGG-MM-DD):", "2027-01-01") || "";
-                  setWorkers([...workers, { id: Date.now().toString(), name, role, medicalExpiry, permitExpiry }]);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-semibold transition"
+                onClick={() => setWorkerModal({
+                  open: true,
+                  isEdit: false,
+                  name: "",
+                  role: "Radnik",
+                  medicalExpiry: "",
+                  permitExpiry: ""
+                })}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-semibold transition shadow-md"
               >
                 <UserPlus className="h-4 w-4" /> Novi Radnik
               </button>
@@ -282,73 +328,100 @@ export default function Dashboard() {
               {workers.map((w) => {
                 const permitDays = getDaysLeft(w.permitExpiry);
                 const medicalDays = getDaysLeft(w.medicalExpiry);
-                const isPermitCritical = permitDays <= 60;
+                const isPermitCritical = w.permitExpiry && permitDays <= 60;
 
                 return (
-                  <div key={w.id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between gap-3">
+                  <div key={w.id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between gap-3 hover:border-slate-700 transition">
                     <div>
                       <div className="flex justify-between items-start">
                         <div>
                           <h3 className="font-bold text-white text-base">{w.name}</h3>
                           <span className="text-xs text-indigo-400 font-medium">{w.role}</span>
                         </div>
-                        <button
-                          onClick={() => setPinModal({ open: true, itemType: "worker", itemId: w.id })}
-                          className="p-1.5 hover:bg-rose-950/60 hover:text-rose-400 rounded-lg text-slate-500 transition"
-                          title="Obriši radnika uz PIN"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setWorkerModal({
+                              open: true,
+                              isEdit: true,
+                              id: w.id,
+                              name: w.name,
+                              role: w.role,
+                              medicalExpiry: w.medicalExpiry,
+                              permitExpiry: w.permitExpiry
+                            })}
+                            className="p-1.5 hover:bg-indigo-950 hover:text-indigo-400 rounded-lg text-slate-400 transition"
+                            title="Uredi radnika i datume"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setPinModal({ open: true, itemType: "worker", itemId: w.id })}
+                            className="p-1.5 hover:bg-rose-950/60 hover:text-rose-400 rounded-lg text-slate-500 transition"
+                            title="Obriši radnika uz PIN"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="mt-4 space-y-2 text-xs">
                         {/* Radna dozvola (Alarm 2 mjeseca / 60 dana) */}
-                        <div className="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/50 border border-slate-800">
+                        <div className="flex justify-between items-center py-2 px-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
                           <div>
-                            <span className="block text-slate-400 font-semibold">Radna dozvola:</span>
-                            <span className={isPermitCritical ? "text-rose-400 font-bold" : "text-slate-200"}>
+                            <span className="block text-slate-400 font-semibold mb-0.5">Radna dozvola:</span>
+                            <span className={isPermitCritical ? "text-rose-400 font-bold text-sm" : "text-slate-200"}>
                               {w.permitExpiry || "Nema unosa"}
                             </span>
                           </div>
                           <div className="flex flex-col items-end gap-1">
-                            <span className={`text-[11px] px-1.5 py-0.5 rounded font-semibold ${
-                              isPermitCritical ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-slate-800 text-slate-300"
-                            }`}>
-                              {permitDays < 0 ? "Istekla!" : `${permitDays} d.`}
-                            </span>
                             {w.permitExpiry && (
-                              <button
-                                onClick={() => setPinModal({ open: true, itemType: "worker", itemId: w.id, field: "permit" })}
-                                className="text-[10px] text-rose-400 hover:text-rose-300 underline"
-                              >
-                                Obriši
-                              </button>
+                              <span className={`text-[11px] px-1.5 py-0.5 rounded font-semibold ${
+                                isPermitCritical ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-slate-800 text-slate-300"
+                              }`}>
+                                {permitDays < 0 ? "Istekla!" : `${permitDays} d.`}
+                              </span>
                             )}
+                            <button
+                              onClick={() => {
+                                const newDate = prompt(`Unesite novi datum radne dozvole za ${w.name} (GGGG-MM-DD):`, w.permitExpiry);
+                                if (newDate !== null) {
+                                  setWorkers(workers.map(item => item.id === w.id ? { ...item, permitExpiry: newDate } : item));
+                                }
+                              }}
+                              className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium underline"
+                            >
+                              Izmijeni
+                            </button>
                           </div>
                         </div>
 
                         {/* Liječnički pregled */}
-                        <div className="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/50 border border-slate-800">
+                        <div className="flex justify-between items-center py-2 px-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
                           <div>
-                            <span className="block text-slate-400 font-semibold">Liječnički pregled:</span>
-                            <span className={medicalDays <= 15 ? "text-rose-400 font-bold" : "text-slate-200"}>
+                            <span className="block text-slate-400 font-semibold mb-0.5">Liječnički pregled:</span>
+                            <span className={w.medicalExpiry && medicalDays <= 15 ? "text-rose-400 font-bold text-sm" : "text-slate-200"}>
                               {w.medicalExpiry || "Nema unosa"}
                             </span>
                           </div>
                           <div className="flex flex-col items-end gap-1">
-                            <span className={`text-[11px] px-1.5 py-0.5 rounded font-semibold ${
-                              medicalDays <= 15 ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-slate-800 text-slate-300"
-                            }`}>
-                              {medicalDays < 0 ? "Istekao!" : `${medicalDays} d.`}
-                            </span>
                             {w.medicalExpiry && (
-                              <button
-                                onClick={() => setPinModal({ open: true, itemType: "worker", itemId: w.id, field: "medical" })}
-                                className="text-[10px] text-rose-400 hover:text-rose-300 underline"
-                              >
-                                Obriši
-                              </button>
+                              <span className={`text-[11px] px-1.5 py-0.5 rounded font-semibold ${
+                                medicalDays <= 15 ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-slate-800 text-slate-300"
+                              }`}>
+                                {medicalDays < 0 ? "Istekao!" : `${medicalDays} d.`}
+                              </span>
                             )}
+                            <button
+                              onClick={() => {
+                                const newDate = prompt(`Unesite novi datum liječničkog pregleda za ${w.name} (GGGG-MM-DD):`, w.medicalExpiry);
+                                if (newDate !== null) {
+                                  setWorkers(workers.map(item => item.id === w.id ? { ...item, medicalExpiry: newDate } : item));
+                                }
+                              }}
+                              className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium underline"
+                            >
+                              Izmijeni
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -508,6 +581,77 @@ export default function Dashboard() {
           </section>
         )}
       </main>
+
+      {/* MODAL ZA UNOS / UREĐIVANJE RADNIKA */}
+      {workerModal.open && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-indigo-400" />
+              {workerModal.isEdit ? "Uredi podatke radnika" : "Unos novog radnika"}
+            </h3>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Ime i Prezime:</label>
+                <input 
+                  type="text" 
+                  value={workerModal.name}
+                  onChange={(e) => setWorkerModal({ ...workerModal, name: e.target.value })}
+                  placeholder="npr. Ivan Horvat"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Radno mjesto / Uloga:</label>
+                <input 
+                  type="text" 
+                  value={workerModal.role}
+                  onChange={(e) => setWorkerModal({ ...workerModal, role: e.target.value })}
+                  placeholder="npr. Vozač / Radnik"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Istek Radne Dozvole (GGGG-MM-DD):</label>
+                <input 
+                  type="date" 
+                  value={workerModal.permitExpiry}
+                  onChange={(e) => setWorkerModal({ ...workerModal, permitExpiry: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Istek Liječničkog Pregleda (GGGG-MM-DD):</label>
+                <input 
+                  type="date" 
+                  value={workerModal.medicalExpiry}
+                  onChange={(e) => setWorkerModal({ ...workerModal, medicalExpiry: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => setWorkerModal({ open: false, isEdit: false, name: "", role: "Radnik", medicalExpiry: "", permitExpiry: "" })}
+                className="flex-1 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 rounded-xl transition text-slate-300"
+              >
+                Odustani
+              </button>
+              <button
+                onClick={handleSaveWorker}
+                className="flex-1 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition shadow-md"
+              >
+                Spremi Promjene
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PIN Sigurnosni Modal (2468) */}
       {pinModal.open && (
