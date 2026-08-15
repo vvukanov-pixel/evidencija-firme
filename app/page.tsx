@@ -2,9 +2,16 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { 
-  Car, ShieldAlert, AlertTriangle, 
-  Trash2, Plus, Volume2, ShieldCheck, Bell
+  Users, Car, ShieldAlert, AlertTriangle, 
+  Trash2, Plus, Volume2, ShieldCheck, Bell, Mail, UserPlus
 } from "lucide-react";
+
+// --- Početni podaci ---
+const INITIAL_WORKERS = [
+  { id: "w1", name: "Ivan Horvat", role: "Vozač / Radnik", medicalExpiry: "2026-11-15", permitExpiry: "2026-10-10" },
+  { id: "w2", name: "Marko Marić", role: "Voditelj", medicalExpiry: "2027-04-20", permitExpiry: "2026-09-30" },
+  { id: "w3", name: "Petar Kovač", role: "Radnik", medicalExpiry: "2026-09-05", permitExpiry: "2027-01-15" }
+];
 
 const INITIAL_VEHICLES = [
   { id: "v1", model: "Kombi teretni 1 (Bijeli)", reg: "DU-101-AA", techExpiry: "2026-08-28", insuranceExpiry: "2026-08-28", kaskoExpiry: "2026-08-28" },
@@ -24,7 +31,8 @@ const INITIAL_EXTINGUISHERS = [
 ];
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<"vozila" | "aparati">("vozila");
+  const [activeTab, setActiveTab] = useState<"radnici" | "vozila" | "aparati">("radnici");
+  const [workers, setWorkers] = useState(INITIAL_WORKERS);
   const [vehicles, setVehicles] = useState(INITIAL_VEHICLES);
   const [extinguishers, setExtinguishers] = useState(INITIAL_EXTINGUISHERS);
 
@@ -56,16 +64,19 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    const savedWorkers = localStorage.getItem("app_workers");
     const savedVehicles = localStorage.getItem("app_vehicles");
     const savedExtinguishers = localStorage.getItem("app_extinguishers");
+    if (savedWorkers) setWorkers(JSON.parse(savedWorkers));
     if (savedVehicles) setVehicles(JSON.parse(savedVehicles));
     if (savedExtinguishers) setExtinguishers(JSON.parse(savedExtinguishers));
   }, []);
 
   useEffect(() => {
+    localStorage.setItem("app_workers", JSON.stringify(workers));
     localStorage.setItem("app_vehicles", JSON.stringify(vehicles));
     localStorage.setItem("app_extinguishers", JSON.stringify(extinguishers));
-  }, [vehicles, extinguishers]);
+  }, [workers, vehicles, extinguishers]);
 
   const getDaysLeft = (dateStr: string) => {
     if (!dateStr) return 999;
@@ -75,17 +86,65 @@ export default function Dashboard() {
   };
 
   const urgentAlerts = useMemo(() => {
-    const alerts: { title: string; desc: string; days: number }[] = [];
+    const alerts: { title: string; desc: string; days: number; isPermit?: boolean }[] = [];
+    
+    workers.forEach((w) => {
+      const pDays = getDaysLeft(w.permitExpiry);
+      if (pDays <= 60) {
+        alerts.push({ 
+          title: `Radna dozvola: ${w.name}`, 
+          desc: `Istječe za ${pDays} dana (${w.permitExpiry})`, 
+          days: pDays,
+          isPermit: true 
+        });
+      }
+      const mDays = getDaysLeft(w.medicalExpiry);
+      if (mDays <= 15) {
+        alerts.push({ 
+          title: `Liječnički: ${w.name}`, 
+          desc: `Istječe za ${mDays} dana (${w.medicalExpiry})`, 
+          days: mDays 
+        });
+      }
+    });
+
     vehicles.forEach((v) => {
       const techDays = getDaysLeft(v.techExpiry);
-      if (techDays <= 15) alerts.push({ title: `${v.model} - Tehnički pregled`, desc: `Istječe za ${techDays} dana (${v.techExpiry})`, days: techDays });
+      if (techDays <= 15) {
+        alerts.push({ 
+          title: `${v.model} - Tehnički`, 
+          desc: `Istječe za ${techDays} dana (${v.techExpiry})`, 
+          days: techDays 
+        });
+      }
     });
+
     extinguishers.forEach((e) => {
       const srvDays = getDaysLeft(e.serviceExpiry);
-      if (srvDays <= 15) alerts.push({ title: `Aparat ${e.code} (${e.location})`, desc: `Servis za ${srvDays} dana (${e.serviceExpiry})`, days: srvDays });
+      if (srvDays <= 15) {
+        alerts.push({ 
+          title: `Aparat ${e.code} (${e.location})`, 
+          desc: `Servis za ${srvDays} dana (${e.serviceExpiry})`, 
+          days: srvDays 
+        });
+      }
     });
+
     return alerts.sort((a, b) => a.days - b.days);
-  }, [vehicles, extinguishers]);
+  }, [workers, vehicles, extinguishers]);
+
+  const sendEmailAlert = () => {
+    const subject = encodeURIComponent("Upozorenje o isteku radnih dozvola i atesta");
+    let bodyText = "Poštovani,\n\nOvdje je pregled stavki s kritičnim rokovima:\n\n";
+    
+    urgentAlerts.forEach((a) => {
+      bodyText += `- ${a.title}: ${a.desc}\n`;
+    });
+
+    bodyText += "\nEvidencija tvrtke Portal Montaža";
+    const mailtoUrl = `mailto:portal.montaza@du.ht.hr?subject=${subject}&body=${encodeURIComponent(bodyText)}`;
+    window.location.href = mailtoUrl;
+  };
 
   const handleConfirmDelete = () => {
     if (enteredPin !== "2468") {
@@ -93,6 +152,16 @@ export default function Dashboard() {
       return;
     }
     const { itemType, itemId, field } = pinModal;
+
+    if (itemType === "worker") {
+      if (field === "medical") {
+        setWorkers(workers.map(w => w.id === itemId ? { ...w, medicalExpiry: "" } : w));
+      } else if (field === "permit") {
+        setWorkers(workers.map(w => w.id === itemId ? { ...w, permitExpiry: "" } : w));
+      } else {
+        setWorkers(workers.filter((w) => w.id !== itemId));
+      }
+    }
 
     if (itemType === "vehicle") {
       if (field === "ao") {
@@ -121,12 +190,19 @@ export default function Dashboard() {
             <ShieldCheck className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white tracking-wide">Evidencija Vozila i Opreme</h1>
-            <p className="text-xs text-slate-400">Praćenje tehničkih pregleda, osiguranja i atesta</p>
+            <h1 className="text-xl font-bold text-white tracking-wide">Evidencija Tvrtke</h1>
+            <p className="text-xs text-slate-400">Radnici, vozila i vatrogasni aparati</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
+          <button 
+            onClick={sendEmailAlert}
+            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg transition"
+            title="Pošalji obavijest na portal.montaza@du.ht.hr"
+          >
+            <Mail className="h-4 w-4" /> Pošalji na Mail
+          </button>
           <button 
             onClick={playAlarmSound}
             className="flex items-center gap-2 px-3 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition"
@@ -143,7 +219,7 @@ export default function Dashboard() {
       {urgentAlerts.length > 0 && (
         <div className="bg-rose-900/20 border-b border-rose-800/30 px-6 py-3">
           <div className="flex items-center gap-2 text-rose-300 text-sm font-semibold mb-2">
-            <AlertTriangle className="h-4 w-4" /> Upozorenja o rokovima (manje od 15 dana):
+            <AlertTriangle className="h-4 w-4" /> Upozorenja (Dozvole &lt;60 dana | Ostalo &lt;15 dana):
           </div>
           <div className="flex gap-3 overflow-x-auto pb-1 text-xs">
             {urgentAlerts.map((a, i) => (
@@ -158,6 +234,7 @@ export default function Dashboard() {
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col gap-6">
         <nav className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
           {[
+            { id: "radnici", label: `Radnici (${workers.length})`, icon: Users },
             { id: "vozila", label: `Vozni Park (${vehicles.length})`, icon: Car },
             { id: "aparati", label: `Vatrogasni Aparati (${extinguishers.length})`, icon: ShieldAlert },
           ].map((tab) => {
@@ -180,6 +257,115 @@ export default function Dashboard() {
           })}
         </nav>
 
+        {/* --- KARTICA RADNICI --- */}
+        {activeTab === "radnici" && (
+          <section className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 backdrop-blur">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">Popis Radnika i Dozvola</h2>
+              <button 
+                onClick={() => {
+                  const name = prompt("Ime i prezime radnika:");
+                  if (!name) return;
+                  const role = prompt("Radno mjesto / Uloga:", "Radnik") || "Radnik";
+                  const medicalExpiry = prompt("Istek liječničkog (GGGG-MM-DD):", "2027-01-01") || "";
+                  const permitExpiry = prompt("Istek radne dozvole (GGGG-MM-DD):", "2027-01-01") || "";
+                  setWorkers([...workers, { id: Date.now().toString(), name, role, medicalExpiry, permitExpiry }]);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-semibold transition"
+              >
+                <UserPlus className="h-4 w-4" /> Novi Radnik
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {workers.map((w) => {
+                const permitDays = getDaysLeft(w.permitExpiry);
+                const medicalDays = getDaysLeft(w.medicalExpiry);
+                const isPermitCritical = permitDays <= 60;
+
+                return (
+                  <div key={w.id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between gap-3">
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-bold text-white text-base">{w.name}</h3>
+                          <span className="text-xs text-indigo-400 font-medium">{w.role}</span>
+                        </div>
+                        <button
+                          onClick={() => setPinModal({ open: true, itemType: "worker", itemId: w.id })}
+                          className="p-1.5 hover:bg-rose-950/60 hover:text-rose-400 rounded-lg text-slate-500 transition"
+                          title="Obriši radnika uz PIN"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="mt-4 space-y-2 text-xs">
+                        {/* Radna dozvola (Alarm 2 mjeseca / 60 dana) */}
+                        <div className="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/50 border border-slate-800">
+                          <div>
+                            <span className="block text-slate-400 font-semibold">Radna dozvola:</span>
+                            <span className={isPermitCritical ? "text-rose-400 font-bold" : "text-slate-200"}>
+                              {w.permitExpiry || "Nema unosa"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className={`text-[11px] px-1.5 py-0.5 rounded font-semibold ${
+                              isPermitCritical ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-slate-800 text-slate-300"
+                            }`}>
+                              {permitDays < 0 ? "Istekla!" : `${permitDays} d.`}
+                            </span>
+                            {w.permitExpiry && (
+                              <button
+                                onClick={() => setPinModal({ open: true, itemType: "worker", itemId: w.id, field: "permit" })}
+                                className="text-[10px] text-rose-400 hover:text-rose-300 underline"
+                              >
+                                Obriši
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Liječnički pregled */}
+                        <div className="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/50 border border-slate-800">
+                          <div>
+                            <span className="block text-slate-400 font-semibold">Liječnički pregled:</span>
+                            <span className={medicalDays <= 15 ? "text-rose-400 font-bold" : "text-slate-200"}>
+                              {w.medicalExpiry || "Nema unosa"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className={`text-[11px] px-1.5 py-0.5 rounded font-semibold ${
+                              medicalDays <= 15 ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-slate-800 text-slate-300"
+                            }`}>
+                              {medicalDays < 0 ? "Istekao!" : `${medicalDays} d.`}
+                            </span>
+                            {w.medicalExpiry && (
+                              <button
+                                onClick={() => setPinModal({ open: true, itemType: "worker", itemId: w.id, field: "medical" })}
+                                className="text-[10px] text-rose-400 hover:text-rose-300 underline"
+                              >
+                                Obriši
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {isPermitCritical && (
+                      <div className="p-2 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-200 text-center text-xs font-bold animate-pulse">
+                        ⚠️ Radna dozvola istječe unutar 2 mjeseca!
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* --- KARTICA VOZILA --- */}
         {activeTab === "vozila" && (
           <section className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 backdrop-blur">
             <div className="flex justify-between items-center mb-4">
@@ -266,6 +452,7 @@ export default function Dashboard() {
           </section>
         )}
 
+        {/* --- KARTICA VATROGASNI APARATI --- */}
         {activeTab === "aparati" && (
           <section className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 backdrop-blur">
             <div className="flex justify-between items-center mb-4">
@@ -321,6 +508,7 @@ export default function Dashboard() {
         )}
       </main>
 
+      {/* PIN Sigurnosni Modal (2468) */}
       {pinModal.open && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
