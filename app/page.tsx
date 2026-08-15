@@ -85,6 +85,7 @@ export default function Dashboard() {
     return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
   };
 
+  // Upozorenja: Radne dozvole (<=60 dana), Liječnički i ostalo (<=15 dana)
   const urgentAlerts = useMemo(() => {
     const alerts: { title: string; desc: string; days: number; isPermit?: boolean }[] = [];
     
@@ -141,7 +142,7 @@ export default function Dashboard() {
       bodyText += `- ${a.title}: ${a.desc}\n`;
     });
 
-    bodyText += "\nEvidencija tvrtke Portal Montaža";
+    bodyText += "\nEvidencija Firme: Radnici, Vozila i Vatrogasni Aparati";
     const mailtoUrl = `mailto:portal.montaza@du.ht.hr?subject=${subject}&body=${encodeURIComponent(bodyText)}`;
     window.location.href = mailtoUrl;
   };
@@ -190,8 +191,8 @@ export default function Dashboard() {
             <ShieldCheck className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white tracking-wide">Evidencija Tvrtke</h1>
-            <p className="text-xs text-slate-400">Radnici, vozila i vatrogasni aparati</p>
+            <h1 className="text-xl font-bold text-white tracking-wide">Evidencija Firme</h1>
+            <p className="text-xs text-slate-400">Radnici, Vozila i Vatrogasni Aparati</p>
           </div>
         </div>
 
