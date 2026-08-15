@@ -6,7 +6,7 @@ import {
   Trash2, Plus, Volume2, ShieldCheck, Bell, Mail, UserPlus, Edit3
 } from "lucide-react";
 
-// --- Vaši stvarni radnici postavljeni kao početni podaci ---
+// --- Službeni radnici ---
 const INITIAL_WORKERS = [
   { id: "w1", name: "ZLATKO RADIŠ", role: "MONTER", medicalExpiry: "2027-09-01", permitExpiry: "2027-01-01" },
   { id: "w2", name: "SINIŠA PRAVICA", role: "Monter", medicalExpiry: "2027-08-15", permitExpiry: "2027-09-03" },
@@ -18,29 +18,33 @@ const INITIAL_WORKERS = [
   { id: "w8", name: "MIODRAG ĆERANIĆ", role: "POMOĆNI MONTER", medicalExpiry: "2027-09-15", permitExpiry: "2027-09-15" }
 ];
 
+// --- Službena vozila iz polica osiguranja ---
 const INITIAL_VEHICLES = [
-  { id: "v1", model: "Kombi teretni 1 (Bijeli)", reg: "DU-101-AA", techExpiry: "2026-08-28", insuranceExpiry: "2026-08-28", kaskoExpiry: "2026-08-28" },
-  { id: "v2", model: "Kombi teretni 2 (Sivi)", reg: "DU-102-BB", techExpiry: "2026-11-15", insuranceExpiry: "2026-11-15", kaskoExpiry: "2026-11-15" },
-  { id: "v3", model: "Citroën (Osobno)", reg: "DU-203-CC", techExpiry: "2026-09-10", insuranceExpiry: "2026-09-10", kaskoExpiry: "2026-09-10" },
-  { id: "v4", model: "Peugeot 2008", reg: "DU-304-DD", techExpiry: "2027-02-01", insuranceExpiry: "2027-02-01", kaskoExpiry: "2027-02-01" },
-  { id: "v5", model: "Kia kombi putnički", reg: "DU-405-EE", techExpiry: "2026-08-19", insuranceExpiry: "2026-08-19", kaskoExpiry: "2026-08-19" },
-  { id: "v6", model: "Yamaha Tricity (Motor)", reg: "DU-506-FF", techExpiry: "2026-10-05", insuranceExpiry: "2026-10-05", kaskoExpiry: "2026-10-05" }
+  { id: "v1", model: "Peugeot Boxer 2.2 BlueHDi", reg: "DU-337-JJ", techExpiry: "2027-06-30", insuranceExpiry: "2027-06-30", kaskoExpiry: "2027-06-30" },
+  { id: "v2", model: "Citroën Jumper 2.0 D", reg: "DU-865-HS", techExpiry: "2027-05-17", insuranceExpiry: "2027-05-17", kaskoExpiry: "2027-05-17" },
+  { id: "v3", model: "Citroën C3 1.6 Shine BlueHDi", reg: "DU-502-HO", techExpiry: "2027-02-09", insuranceExpiry: "2027-02-09", kaskoExpiry: "2027-02-09" },
+  { id: "v4", model: "Mercedes GLE 350 de 4MATIC", reg: "VŽ-255-TB", techExpiry: "2027-03-31", insuranceExpiry: "2027-03-31", kaskoExpiry: "2027-03-31" },
+  { id: "v5", model: "Yamaha Tricity 300", reg: "DU-698-KG", techExpiry: "2027-05-19", insuranceExpiry: "2027-05-19", kaskoExpiry: "2027-05-19" },
+  { id: "v6", model: "Peugeot e-2008", reg: "DU-315-JJ", techExpiry: "2027-07-01", insuranceExpiry: "2027-07-01", kaskoExpiry: "2027-07-01" },
+  { id: "v7", model: "Toyota Proace Verso 2.0 Shuttle", reg: "DU-490-KI", techExpiry: "2027-07-27", insuranceExpiry: "2027-07-27", kaskoExpiry: "2027-07-27" }
 ];
 
+// --- Vatrogasni aparati ---
 const INITIAL_EXTINGUISHERS = [
   { id: "e1", code: "S-6 Ured", location: "Glavni ured", serviceExpiry: "2026-08-22" },
-  { id: "e2", code: "S-2 Kombi 1", location: "Kombi teretni 1", serviceExpiry: "2026-08-28" },
-  { id: "e3", code: "S-2 Kombi 2", location: "Kombi teretni 2", serviceExpiry: "2026-11-15" },
-  { id: "e4", code: "S-2 Kia", location: "Kia putnički", serviceExpiry: "2026-09-01" },
+  { id: "e2", code: "S-2 Boxer", location: "Peugeot Boxer", serviceExpiry: "2026-08-28" },
+  { id: "e3", code: "S-2 Jumper", location: "Citroën Jumper", serviceExpiry: "2026-11-15" },
+  { id: "e4", code: "S-2 Toyota", location: "Toyota Proace", serviceExpiry: "2026-09-01" },
   { id: "e5", code: "CO2 Skladište", location: "Skladište materijala", serviceExpiry: "2027-01-10" }
 ];
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<"radnici" | "vozila" | "aparati">("radnici");
+  const [activeTab, setActiveTab] = useState<"radnici" | "vozila" | "aparati">("vozila");
   const [workers, setWorkers] = useState(INITIAL_WORKERS);
   const [vehicles, setVehicles] = useState(INITIAL_VEHICLES);
   const [extinguishers, setExtinguishers] = useState(INITIAL_EXTINGUISHERS);
 
+  // Modal za radnike
   const [workerModal, setWorkerModal] = useState<{
     open: boolean;
     isEdit: boolean;
@@ -56,6 +60,26 @@ export default function Dashboard() {
     role: "Monter",
     medicalExpiry: "",
     permitExpiry: ""
+  });
+
+  // Modal za vozila
+  const [vehicleModal, setVehicleModal] = useState<{
+    open: boolean;
+    isEdit: boolean;
+    id?: string;
+    model: string;
+    reg: string;
+    techExpiry: string;
+    insuranceExpiry: string;
+    kaskoExpiry: string;
+  }>({
+    open: false,
+    isEdit: false,
+    model: "",
+    reg: "",
+    techExpiry: "",
+    insuranceExpiry: "",
+    kaskoExpiry: ""
   });
 
   const [pinModal, setPinModal] = useState<{ open: boolean; itemType: string; itemId: string; field?: string }>({
@@ -86,21 +110,20 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const savedWorkers = localStorage.getItem("app_workers_v2");
-    const savedVehicles = localStorage.getItem("app_vehicles_v2");
-    const savedExtinguishers = localStorage.getItem("app_extinguishers_v2");
+    const savedWorkers = localStorage.getItem("app_workers_v3");
+    const savedVehicles = localStorage.getItem("app_vehicles_v3");
+    const savedExtinguishers = localStorage.getItem("app_extinguishers_v3");
     if (savedWorkers) setWorkers(JSON.parse(savedWorkers));
     if (savedVehicles) setVehicles(JSON.parse(savedVehicles));
     if (savedExtinguishers) setExtinguishers(JSON.parse(savedExtinguishers));
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("app_workers_v2", JSON.stringify(workers));
-    localStorage.setItem("app_vehicles_v2", JSON.stringify(vehicles));
-    localStorage.setItem("app_extinguishers_v2", JSON.stringify(extinguishers));
+    localStorage.setItem("app_workers_v3", JSON.stringify(workers));
+    localStorage.setItem("app_vehicles_v3", JSON.stringify(vehicles));
+    localStorage.setItem("app_extinguishers_v3", JSON.stringify(extinguishers));
   }, [workers, vehicles, extinguishers]);
 
-  // Pametno parsiranje datuma (podržava i YYYY-MM-DD i DD.MM.YYYY)
   const parseDate = (dateStr: string) => {
     if (!dateStr) return null;
     const cleanStr = dateStr.trim();
@@ -148,7 +171,7 @@ export default function Dashboard() {
       const techDays = getDaysLeft(v.techExpiry);
       if (techDays <= 15 && v.techExpiry) {
         alerts.push({ 
-          title: `${v.model} - Tehnički`, 
+          title: `${v.model} (${v.reg}) - Tehnički`, 
           desc: `Istječe za ${techDays} dana (${v.techExpiry})`, 
           days: techDays 
         });
@@ -170,7 +193,7 @@ export default function Dashboard() {
   }, [workers, vehicles, extinguishers]);
 
   const sendEmailAlert = () => {
-    const subject = encodeURIComponent("Upozorenje o isteku radnih dozvola i atesta");
+    const subject = encodeURIComponent("Upozorenje o isteku radnih dozvola i registracija");
     let bodyText = "Poštovani,\n\nOvdje je pregled stavki s kritičnim rokovima:\n\n";
     urgentAlerts.forEach((a) => {
       bodyText += `- ${a.title}: ${a.desc}\n`;
@@ -202,6 +225,33 @@ export default function Dashboard() {
       }]);
     }
     setWorkerModal({ open: false, isEdit: false, name: "", role: "Monter", medicalExpiry: "", permitExpiry: "" });
+  };
+
+  const handleSaveVehicle = () => {
+    if (!vehicleModal.model.trim()) {
+      alert("Molimo unesite naziv vozila!");
+      return;
+    }
+    if (vehicleModal.isEdit && vehicleModal.id) {
+      setVehicles(vehicles.map(v => v.id === vehicleModal.id ? {
+        ...v,
+        model: vehicleModal.model,
+        reg: vehicleModal.reg,
+        techExpiry: vehicleModal.techExpiry,
+        insuranceExpiry: vehicleModal.insuranceExpiry,
+        kaskoExpiry: vehicleModal.kaskoExpiry
+      } : v));
+    } else {
+      setVehicles([...vehicles, {
+        id: Date.now().toString(),
+        model: vehicleModal.model,
+        reg: vehicleModal.reg,
+        techExpiry: vehicleModal.techExpiry,
+        insuranceExpiry: vehicleModal.insuranceExpiry,
+        kaskoExpiry: vehicleModal.kaskoExpiry
+      }]);
+    }
+    setVehicleModal({ open: false, isEdit: false, model: "", reg: "", techExpiry: "", insuranceExpiry: "", kaskoExpiry: "" });
   };
 
   const handleConfirmDelete = () => {
@@ -292,8 +342,8 @@ export default function Dashboard() {
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col gap-6">
         <nav className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
           {[
-            { id: "radnici", label: `Radnici (${workers.length})`, icon: Users },
             { id: "vozila", label: `Vozni Park (${vehicles.length})`, icon: Car },
+            { id: "radnici", label: `Radnici (${workers.length})`, icon: Users },
             { id: "aparati", label: `Vatrogasni Aparati (${extinguishers.length})`, icon: ShieldAlert },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -314,6 +364,95 @@ export default function Dashboard() {
             );
           })}
         </nav>
+
+        {/* --- KARTICA VOZILA --- */}
+        {activeTab === "vozila" && (
+          <section className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 backdrop-blur">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">Vozni Park i Police Osiguranja</h2>
+              <button 
+                onClick={() => setVehicleModal({
+                  open: true,
+                  isEdit: false,
+                  model: "",
+                  reg: "DU-",
+                  techExpiry: "",
+                  insuranceExpiry: "",
+                  kaskoExpiry: ""
+                })}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-semibold transition shadow-md"
+              >
+                <Plus className="h-4 w-4" /> Novo Vozilo
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {vehicles.map((v) => {
+                const days = getDaysLeft(v.techExpiry);
+                const isUrgent = days <= 15;
+
+                return (
+                  <div key={v.id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between gap-3 hover:border-slate-700 transition">
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-bold text-white text-base">{v.model}</h3>
+                          <span className="inline-block mt-1 text-xs bg-slate-800 px-2 py-0.5 rounded font-mono text-indigo-300 font-bold tracking-wider">{v.reg}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setVehicleModal({
+                              open: true,
+                              isEdit: true,
+                              id: v.id,
+                              model: v.model,
+                              reg: v.reg,
+                              techExpiry: v.techExpiry,
+                              insuranceExpiry: v.insuranceExpiry,
+                              kaskoExpiry: v.kaskoExpiry
+                            })}
+                            className="p-1.5 hover:bg-indigo-950 hover:text-indigo-400 rounded-lg text-slate-400 transition"
+                            title="Uredi vozilo"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setPinModal({ open: true, itemType: "vehicle", itemId: v.id })}
+                            className="p-1.5 hover:bg-rose-950/60 hover:text-rose-400 rounded-lg text-slate-500 transition"
+                            title="Obriši vozilo uz PIN"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-2 text-xs">
+                        <div className="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/50 border border-slate-800/80">
+                          <span className="text-slate-400 font-medium">Tehnički pregled:</span>
+                          <span className={isUrgent ? "text-rose-400 font-bold" : "text-slate-200 font-semibold"}>{v.techExpiry || "Nije uneseno"}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/50 border border-slate-800/80">
+                          <span className="text-slate-400 font-medium">Osiguranje (AO):</span>
+                          <span className="text-slate-200 font-semibold">{v.insuranceExpiry || "Nije uneseno"}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1.5 px-2 rounded bg-slate-950/50 border border-slate-800/80">
+                          <span className="text-slate-400 font-medium">Kasko osiguranje:</span>
+                          <span className="text-slate-200 font-semibold">{v.kaskoExpiry || "Nije uneseno"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={`mt-2 p-2.5 rounded-lg text-center text-xs font-bold ${
+                      isUrgent ? "bg-rose-950 text-rose-300 border border-rose-800 animate-pulse" : "bg-emerald-950/50 text-emerald-400 border border-emerald-800/50"
+                    }`}>
+                      {days < 0 ? "Registracija istekla!" : `Preostalo ${days} dana`}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* --- KARTICA RADNICI --- */}
         {activeTab === "radnici" && (
@@ -361,7 +500,7 @@ export default function Dashboard() {
                               permitExpiry: w.permitExpiry
                             })}
                             className="p-1.5 hover:bg-indigo-950 hover:text-indigo-400 rounded-lg text-slate-400 transition"
-                            title="Uredi radnika i datume"
+                            title="Uredi radnika"
                           >
                             <Edit3 className="h-4 w-4" />
                           </button>
@@ -376,7 +515,6 @@ export default function Dashboard() {
                       </div>
 
                       <div className="mt-4 space-y-2 text-xs">
-                        {/* Radna dozvola */}
                         <div className="flex justify-between items-center py-2 px-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
                           <div>
                             <span className="block text-slate-400 font-semibold mb-0.5">Radna dozvola:</span>
@@ -392,21 +530,9 @@ export default function Dashboard() {
                                 {permitDays < 0 ? "Istekla!" : `${permitDays} d.`}
                               </span>
                             )}
-                            <button
-                              onClick={() => {
-                                const newDate = prompt(`Unesite datum radne dozvole za ${w.name} (GGGG-MM-DD):`, w.permitExpiry);
-                                if (newDate !== null) {
-                                  setWorkers(workers.map(item => item.id === w.id ? { ...item, permitExpiry: newDate } : item));
-                                }
-                              }}
-                              className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium underline"
-                            >
-                              Izmijeni
-                            </button>
                           </div>
                         </div>
 
-                        {/* Liječnički pregled */}
                         <div className="flex justify-between items-center py-2 px-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
                           <div>
                             <span className="block text-slate-400 font-semibold mb-0.5">Liječnički pregled:</span>
@@ -422,17 +548,6 @@ export default function Dashboard() {
                                 {medicalDays < 0 ? "Istekao!" : `${medicalDays} d.`}
                               </span>
                             )}
-                            <button
-                              onClick={() => {
-                                const newDate = prompt(`Unesite datum liječničkog pregleda za ${w.name} (GGGG-MM-DD):`, w.medicalExpiry);
-                                if (newDate !== null) {
-                                  setWorkers(workers.map(item => item.id === w.id ? { ...item, medicalExpiry: newDate } : item));
-                                }
-                              }}
-                              className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium underline"
-                            >
-                              Izmijeni
-                            </button>
                           </div>
                         </div>
                       </div>
@@ -443,93 +558,6 @@ export default function Dashboard() {
                         ⚠️ Radna dozvola istječe unutar 2 mjeseca!
                       </div>
                     )}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* --- KARTICA VOZILA --- */}
-        {activeTab === "vozila" && (
-          <section className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 backdrop-blur">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">Vozni Park i Registracije</h2>
-              <button 
-                onClick={() => {
-                  const model = prompt("Marka i model vozila:");
-                  if (!model) return;
-                  const reg = prompt("Registarska oznaka:", "DU-000-XX") || "DU-000-XX";
-                  const techExpiry = prompt("Istek tehničkog (GGGG-MM-DD):", "2027-01-01") || "2027-01-01";
-                  setVehicles([...vehicles, { id: Date.now().toString(), model, reg, techExpiry, insuranceExpiry: techExpiry, kaskoExpiry: techExpiry }]);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-semibold transition"
-              >
-                <Plus className="h-4 w-4" /> Novo Vozilo
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {vehicles.map((v) => {
-                const days = getDaysLeft(v.techExpiry);
-                return (
-                  <div key={v.id} className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col justify-between gap-3">
-                    <div>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-bold text-white text-base">{v.model}</h3>
-                          <span className="inline-block mt-1 text-xs bg-slate-800 px-2 py-0.5 rounded font-mono text-indigo-300">{v.reg}</span>
-                        </div>
-                        <button
-                          onClick={() => setPinModal({ open: true, itemType: "vehicle", itemId: v.id })}
-                          className="p-1.5 hover:bg-rose-950/60 hover:text-rose-400 rounded-lg text-slate-500 transition"
-                          title="Obriši vozilo uz PIN"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      <div className="mt-4 space-y-2 text-xs">
-                        <div className="flex justify-between items-center py-1 border-b border-slate-800/60">
-                          <span className="text-slate-400">Tehnički pregled:</span>
-                          <span className={days <= 15 ? "text-rose-400 font-bold" : "text-slate-200"}>{v.techExpiry || "Nije uneseno"}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1 border-b border-slate-800/60">
-                          <span className="text-slate-400">Osiguranje (AO):</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-200">{v.insuranceExpiry || "Nije uneseno"}</span>
-                            {v.insuranceExpiry && (
-                              <button
-                                onClick={() => setPinModal({ open: true, itemType: "vehicle", itemId: v.id, field: "ao" })}
-                                className="text-[10px] text-rose-400 hover:text-rose-300 underline"
-                              >
-                                Obriši AO
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center py-1">
-                          <span className="text-slate-400">Kasko:</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-200">{v.kaskoExpiry || "Nije uneseno"}</span>
-                            {v.kaskoExpiry && (
-                              <button
-                                onClick={() => setPinModal({ open: true, itemType: "vehicle", itemId: v.id, field: "kasko" })}
-                                className="text-[10px] text-rose-400 hover:text-rose-300 underline"
-                              >
-                                Obriši Kasko
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className={`mt-2 p-2 rounded-lg text-center text-xs font-bold ${
-                      days <= 15 ? "bg-rose-950 text-rose-300 border border-rose-800" : "bg-emerald-950/50 text-emerald-400 border border-emerald-800/50"
-                    }`}>
-                      {days < 0 ? "Registracija istekla!" : `Preostalo ${days} dana`}
-                    </div>
                   </div>
                 );
               })}
@@ -593,13 +621,94 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* Modal za unos i izmjenu */}
+      {/* MODAL ZA VOZILA */}
+      {vehicleModal.open && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <Car className="h-5 w-5 text-indigo-400" />
+              {vehicleModal.isEdit ? "Uredi vozilo" : "Novo vozilo"}
+            </h3>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Marka i model:</label>
+                <input 
+                  type="text" 
+                  value={vehicleModal.model}
+                  onChange={(e) => setVehicleModal({ ...vehicleModal, model: e.target.value })}
+                  placeholder="npr. Peugeot Boxer"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Registarska oznaka:</label>
+                <input 
+                  type="text" 
+                  value={vehicleModal.reg}
+                  onChange={(e) => setVehicleModal({ ...vehicleModal, reg: e.target.value })}
+                  placeholder="npr. DU-337-JJ"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Istek tehničkog pregleda (GGGG-MM-DD):</label>
+                <input 
+                  type="date" 
+                  value={vehicleModal.techExpiry}
+                  onChange={(e) => setVehicleModal({ ...vehicleModal, techExpiry: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Istek AO osiguranja (GGGG-MM-DD):</label>
+                <input 
+                  type="date" 
+                  value={vehicleModal.insuranceExpiry}
+                  onChange={(e) => setVehicleModal({ ...vehicleModal, insuranceExpiry: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold">Istek kasko osiguranja (GGGG-MM-DD):</label>
+                <input 
+                  type="date" 
+                  value={vehicleModal.kaskoExpiry}
+                  onChange={(e) => setVehicleModal({ ...vehicleModal, kaskoExpiry: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => setVehicleModal({ open: false, isEdit: false, model: "", reg: "", techExpiry: "", insuranceExpiry: "", kaskoExpiry: "" })}
+                className="flex-1 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 rounded-xl transition text-slate-300"
+              >
+                Odustani
+              </button>
+              <button
+                onClick={handleSaveVehicle}
+                className="flex-1 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition shadow-md"
+              >
+                Spremi Promjene
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ZA RADNIKE */}
       {workerModal.open && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
             <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-indigo-400" />
-              {workerModal.isEdit ? "Uredi podatke radnika" : "Unos novog radnika"}
+              {workerModal.isEdit ? "Uredi radnika" : "Novi radnik"}
             </h3>
 
             <div className="space-y-3 text-xs">
@@ -628,10 +737,9 @@ export default function Dashboard() {
               <div>
                 <label className="block text-slate-400 mb-1 font-semibold">Istek Radne Dozvole (GGGG-MM-DD):</label>
                 <input 
-                  type="text" 
+                  type="date" 
                   value={workerModal.permitExpiry}
                   onChange={(e) => setWorkerModal({ ...workerModal, permitExpiry: e.target.value })}
-                  placeholder="2027-09-15"
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
                 />
               </div>
@@ -639,10 +747,9 @@ export default function Dashboard() {
               <div>
                 <label className="block text-slate-400 mb-1 font-semibold">Istek Liječničkog Pregleda (GGGG-MM-DD):</label>
                 <input 
-                  type="text" 
+                  type="date" 
                   value={workerModal.medicalExpiry}
                   onChange={(e) => setWorkerModal({ ...workerModal, medicalExpiry: e.target.value })}
-                  placeholder="2027-09-15"
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
                 />
               </div>
